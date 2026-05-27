@@ -1,0 +1,63 @@
+/* ============================================================
+   App-level layout
+   ============================================================ */
+#root {
+  min-height: 100vh;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  overflow-x: hidden;
+  background-color: #0a0e17; /* fallback – real bg set in index.css */
+}
+
+/* ============================================================
+   Logo / brand animations  (kept from Vite scaffold, safe to remove)
+   ============================================================ */
+.logo {
+  height: clamp(3em, 8vw, 6em);
+  padding: 1em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+/* ============================================================
+   Generic card & text helpers
+   ============================================================ */
+.card {
+  padding: clamp(1em, 3vw, 2em);
+}
+
+.read-the-docs {
+  color: #888;
+  font-size: 0.875rem;
+}
+
+/* ============================================================
+   Page-level responsive wrapper
+   – ensures any page that uses class="page-wrapper" gets
+     proper padding and never stretches beyond the viewport
+   ============================================================ */
+.page-wrapper {
+  width: 100%;
+  max-width: 100vw;
+  padding: clamp(8px, 2vw, 24px);
+  overflow-x: hidden;
+}
