@@ -47,7 +47,7 @@ const PAPER_BG = "#ffffff";
 const TEXT_DARK = "#000000";
 const TEXT_MUTED = "#64748b";
 const BORDER = "rgba(15, 23, 42, 0.08)";
-let BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
+let BASE_URL = "http://localhost:8080";
 const REQUIRED_DEPTS = [
   "Content Writing",
   "Video Production",
@@ -67,7 +67,7 @@ const mapDeptName = (name) => {
   return null;
 };
 
-const CONTENT_TYPES = ["Video", "Image", "Carousel", "Blog", "Ad", "Other"];
+const CONTENT_TYPES = ["Video", "Image", "Carousel", "Blog", "Ad"];
 
 export default function CustomProjectDetail() {
   const navigate = useNavigate();
@@ -171,7 +171,7 @@ export default function CustomProjectDetail() {
   }, [token, navigate, id]);
 
   const handleAddGlobalTask = async () => {
-    if (!newTaskContent.trim() || !project) return;
+    if (!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim() || !project) return;
     try {
       const deptsForTask = project.departments.map((d) => ({
         departmentId: d.departmentId,
@@ -363,7 +363,7 @@ export default function CustomProjectDetail() {
   };
 
   const handleUpdateGlobalTask = async () => {
-    if (!newTaskContent.trim() || !project || !editingTaskId) return;
+    if (!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim() || !project || !editingTaskId) return;
     try {
       const payload = {
         projectId: project._id,
@@ -565,6 +565,8 @@ export default function CustomProjectDetail() {
             InputLabelProps={{ shrink: true }}
             value={newTaskDate}
             onChange={(e) => setNewTaskDate(e.target.value)}
+            required
+            error={editingTaskId ? false : !newTaskDate && newTaskContent.trim() !== ""}
             sx={{
               width: "160px",
               "& .MuiOutlinedInput-root": {
@@ -576,10 +578,12 @@ export default function CustomProjectDetail() {
           />
           <TextField
             size="small"
-            select
             label="Content Type"
+            placeholder="Select or type..."
             value={newTaskContentType}
             onChange={(e) => setNewTaskContentType(e.target.value)}
+            required
+            error={editingTaskId ? false : !newTaskContentType && newTaskContent.trim() !== ""}
             sx={{
               width: "160px",
               "& .MuiOutlinedInput-root": {
@@ -588,17 +592,19 @@ export default function CustomProjectDetail() {
               },
               "& .MuiInputBase-input": { color: TEXT_DARK },
             }}
-          >
+            list="content-types-list"
+          />
+          <datalist id="content-types-list">
             {CONTENT_TYPES.map((type) => (
-              <MenuItem key={type} value={type}>
-                {type}
-              </MenuItem>
+              <option key={type} value={type} />
             ))}
-          </TextField>
+          </datalist>
           <TextField
             size="small"
             placeholder="Type content detail..."
             fullWidth
+            required
+            error={!newTaskContent.trim() && (newTaskDate !== "" || newTaskContentType !== "")}
             sx={{
               flex: 1,
               minWidth: "200px",
@@ -616,7 +622,7 @@ export default function CustomProjectDetail() {
               <Button
                 variant="contained"
                 onClick={handleUpdateGlobalTask}
-                disabled={!newTaskContent.trim()}
+                disabled={!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim()}
                 sx={{
                   whiteSpace: "nowrap",
                   px: 3,
@@ -648,7 +654,7 @@ export default function CustomProjectDetail() {
             <Button
               variant="contained"
               onClick={handleAddGlobalTask}
-              disabled={!newTaskContent.trim()}
+              disabled={!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim()}
               startIcon={<AddIcon />}
               sx={{
                 whiteSpace: "nowrap",
@@ -868,6 +874,8 @@ export default function CustomProjectDetail() {
                     color: TEXT_DARK,
                     bgcolor: "#f8fafc",
                     borderBottom: `1px solid ${BORDER}`,
+                    width: "250px",
+                    maxWidth: "250px",
                   }}
                 >
                   Content
@@ -958,6 +966,14 @@ export default function CustomProjectDetail() {
                       fontWeight: 800,
                       color: TEXT_DARK,
                       borderBottom: `1px solid ${BORDER}`,
+                      width: "250px",
+                      maxWidth: "250px",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "normal",
+                      wordWrap: "break-word",
+                      verticalAlign: "top",
+                      py: 1.5,
                     }}
                   >
                     {task.content}

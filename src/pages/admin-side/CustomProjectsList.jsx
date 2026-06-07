@@ -24,7 +24,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-const BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
+const BASE_URL = "http://localhost:8080";
 const ACCENT = "#0f766e";
 const PAGE_BG = "#fcfcfc"; // Matches Head.jsx
 const PAPER_BG = "#ffffff";

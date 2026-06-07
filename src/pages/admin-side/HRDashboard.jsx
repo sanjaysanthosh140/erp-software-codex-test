@@ -93,7 +93,7 @@ const headTaskSourceChipLabel = (task) => {
   return "From: HR (legacy)";
 };
 
-const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com"
+const API_BASE_URL = "http://localhost:8080"
 
 // --- DM Projects Helpers ---
 const HR_HYBRID_DEPTS = ["Content Writing", "Video Production", "Editing", "Graphic Design", "DM"];
@@ -166,7 +166,7 @@ const HRDashboard = () => {
   const [deptForm, setDeptForm] = useState({
     id: "",
     title: "",
-    color: "",
+    color: "#ffff",
     description: "",
   });
   const [headTaskForm, setHeadTaskForm] = useState({
@@ -403,10 +403,11 @@ const HRDashboard = () => {
 
   const handleDeptSubmit = async () => {
     try {
+      const payload = { ...deptForm, color: deptForm.color || "#ffff" };
       if (editingDept) {
-        await axios.put(`${API_BASE_URL}/admin/Editdepartments/${editingDept._id}`, deptForm);
+        await axios.put(`${API_BASE_URL}/admin/Editdepartments/${editingDept._id}`, payload);
       } else {
-        await axios.post(`${API_BASE_URL}/admin/addDep`, deptForm);
+        await axios.post(`${API_BASE_URL}/admin/addDep`, payload);
       }
       fetchDepartments();
       setOpenDeptDialog(false);
@@ -551,7 +552,20 @@ const HRDashboard = () => {
     { title: "Active Projects", value: projectsCount, icon: AssessmentIcon, color: "#fff" },
   ];
 
-  const normalizedDepartmentOptions = Array.from(new Set(DEPARTMENTS.map(normalizeDeptName)));
+  const formatDepartment = (dept) => {
+    if (!dept) return "";
+    if (typeof dept === "string") return dept;
+    return dept.title || dept.name || dept.department || dept.departmentName || "";
+  };
+
+  const normalizedDepartmentOptions = Array.from(
+    new Set(
+      departments
+        .map(formatDepartment)
+        .filter(Boolean)
+        .map(normalizeDeptName),
+    ),
+  );
 
   if (loading) {
     return (
@@ -693,7 +707,7 @@ const HRDashboard = () => {
                   setSearchQuery={setSearchQuery}
                   departmentFilter={departmentFilter}
                   setDepartmentFilter={setDepartmentFilter}
-                  departmentsList={DEPARTMENTS}
+                  departmentsList={departments}
                   onAddEmployee={() => handleUserDialogOpen()}
                   onAddHead={() => {
                     setResponsibleForm({
@@ -731,7 +745,7 @@ const HRDashboard = () => {
                 <DepartmentManager
                   key="depts"
                   departments={departments}
-                  onAddDepartment={() => { setEditingDept(null); setDeptForm({ id: "", title: "", color: "", description: "" }); setOpenDeptDialog(true); }}
+                  onAddDepartment={() => { setEditingDept(null); setDeptForm({ id: "", title: "", color: "#ffff", description: "" }); setOpenDeptDialog(true); }}
                   onEditDepartment={(dept) => { setEditingDept(dept); setDeptForm({ ...dept }); setOpenDeptDialog(true); }}
                   onDeleteDepartment={handleDeleteDept}
                   getDeptColor={getDeptColor}
@@ -793,7 +807,7 @@ const HRDashboard = () => {
                         {/* Field 1: Responsible Head */}
                         <Grid item xs={12} md={8}>
                           <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Select Responsible Executive Head
+                            Select Head
                           </Typography>
                           <TextField
                             select
@@ -825,7 +839,7 @@ const HRDashboard = () => {
                         {/* Field 2: Priority */}
                         <Grid item xs={12} md={4}>
                           <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Directive Priority
+                             Priority
                           </Typography>
                           <TextField
                             select
@@ -853,7 +867,7 @@ const HRDashboard = () => {
                         {/* Field 3: Task Details */}
                         <Grid item xs={12}>
                           <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Task Description / Strategic Details
+                            Task Description
                           </Typography>
                           <TextField
                             multiline
@@ -878,7 +892,7 @@ const HRDashboard = () => {
                         {/* Field 4: Commencement Date */}
                         <Grid item xs={12} md={6}>
                           <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Commencement Date
+                            posting date
                           </Typography>
                           <TextField
                             type="date"
@@ -901,7 +915,7 @@ const HRDashboard = () => {
                         {/* Field 5: Target Deadline */}
                         <Grid item xs={12} md={6}>
                           <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            Final Target Deadline
+                            deadline
                           </Typography>
                           <TextField
                             type="date"
@@ -1191,7 +1205,7 @@ const HRDashboard = () => {
           userForm={userForm}
           setUserForm={setUserForm}
           handleUserSubmit={handleUserSubmit}
-          DEPARTMENTS={DEPARTMENTS}
+          DEPARTMENTS={departments}
           openResponsibleDialog={openResponsibleDialog}
           handleResponsibleDialogClose={() => setOpenResponsibleDialog(false)}
           responsibleForm={responsibleForm}

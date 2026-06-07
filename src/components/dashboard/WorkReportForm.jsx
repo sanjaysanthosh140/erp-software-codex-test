@@ -72,7 +72,7 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        "https://project-management-sodtware-backend-end.onrender.com/admin/reports",
+        "http://localhost:8080/admin/reports",
         { headers: { Authorization: `${token}` } }
       );
       const userReports = res.data
@@ -107,7 +107,7 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
           date: toLocalISO(new Date()),
         };
         await axios.post(
-          "https://project-management-sodtware-backend-end.onrender.com/admin/Daily_reports",
+          "http://localhost:8080/admin/Daily_reports",
           reportData,
           {
             headers: {
@@ -142,7 +142,7 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `https://project-management-sodtware-backend-end.onrender.com/admin/update_report/${editingId}`,
+        `http://localhost:8080/admin/update_report/${editingId}`,
         { desc: editDesc },
         { headers: { Authorization: `${token}` } }
       );
@@ -167,7 +167,7 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.delete(
-        `https://project-management-sodtware-backend-end.onrender.com/admin/delete_report/${reportToDelete}`,
+        `http://localhost:8080/admin/delete_report/${reportToDelete}`,
         { headers: { Authorization: `${token}` } }
       );
       showToast("Report deleted successfully", "success");

@@ -95,6 +95,18 @@ const DashboardDialogs = ({
   const [showPasswordResponsible, setShowPasswordResponsible] = useState(false);
   const [showPasswordEdit, setShowPasswordEdit] = useState(false);
 
+  const formatDepartment = (dept) => {
+    if (!dept) return "";
+    if (typeof dept === "string") return dept;
+    return dept.title || dept.name || dept.department || dept.departmentName || JSON.stringify(dept);
+  };
+
+  const departmentKey = (dept, index) => {
+    if (!dept) return `dept-${index}`;
+    if (typeof dept === "string") return dept;
+    return dept._id || dept.Dep_id || dept.title || dept.name || dept.department || dept.departmentName || `dept-${index}`;
+  };
+
   return (
     <>
       {/* USER DIALOG */}
@@ -125,7 +137,7 @@ const DashboardDialogs = ({
         <DialogContent sx={{ p: 4, pt: 2 }}>
           <Stack spacing={2.5}>
             <TextField
-              placeholder="Enter your name"
+              placeholder="Enter employee name"
               value={userForm.name}
               onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
               fullWidth
@@ -133,7 +145,7 @@ const DashboardDialogs = ({
               sx={formTextFieldStyle}
             />
             <TextField
-              placeholder="Enter your email address"
+              placeholder="Enter email address"
               value={userForm.email}
               onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
               fullWidth
@@ -155,9 +167,15 @@ const DashboardDialogs = ({
                 }}
               >
                 <MenuItem value="" disabled>Department</MenuItem>
-                {DEPARTMENTS.map((dept) => (
-                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                ))}
+                {DEPARTMENTS.map((dept, idx) => {
+                  const label = formatDepartment(dept);
+                  const key = departmentKey(dept, idx);
+                  return (
+                    <MenuItem key={key} value={label}>
+                      {label}
+                    </MenuItem>
+                  );
+                })}
               </Select>
             </FormControl>
             {!editingUser && (
@@ -189,7 +207,7 @@ const DashboardDialogs = ({
               fullWidth
               sx={actionButtonStyle}
             >
-              {editingUser ? "Apply Update" : "Initiate Process"}
+              {editingUser ? "Apply Update" : "Submit"}
             </Button>
           </Stack>
         </DialogContent>
@@ -222,21 +240,21 @@ const DashboardDialogs = ({
         <DialogContent sx={{ p: 4, pt: 2 }}>
           <Stack spacing={2.5}>
             <TextField
-              placeholder="Enter your name"
+              placeholder="Enter head name"
               value={responsibleForm.name}
               onChange={(e) => setResponsibleForm({ ...responsibleForm, name: e.target.value })}
               fullWidth
               sx={formTextFieldStyle}
             />
             <TextField
-              placeholder="Enter your email address"
+              placeholder="Enter email address"
               value={responsibleForm.email}
               onChange={(e) => setResponsibleForm({ ...responsibleForm, email: e.target.value })}
               fullWidth
               sx={formTextFieldStyle}
             />
             <TextField
-              placeholder="Enter your role"
+              placeholder="Enter role"
               value={responsibleForm.post}
               onChange={(e) => setResponsibleForm({ ...responsibleForm, post: e.target.value })}
               fullWidth
@@ -258,14 +276,20 @@ const DashboardDialogs = ({
                 }}
               >
                 <MenuItem value="" disabled>Department</MenuItem>
-                {DEPARTMENTS.map((dept) => (
-                  <MenuItem key={dept} value={dept}>{dept}</MenuItem>
-                ))}
+                {DEPARTMENTS.map((dept, idx) => {
+                  const label = formatDepartment(dept);
+                  const key = departmentKey(dept, idx);
+                  return (
+                    <MenuItem key={key} value={label}>
+                      {label}
+                    </MenuItem>
+                  );
+                })}
               </Select>
             </FormControl>
             {!editingAdmin && (
               <TextField
-                placeholder="Security Key"
+                placeholder="password"
                 type={showPasswordResponsible ? "text" : "password"}
                 value={responsibleForm.password}
                 onChange={(e) => setResponsibleForm({ ...responsibleForm, password: e.target.value })}
@@ -292,7 +316,7 @@ const DashboardDialogs = ({
               fullWidth
               sx={actionButtonStyle}
             >
-              {editingAdmin ? "Apply Update" : "Initiate Process"}
+              {editingAdmin ? "Apply Update" : "Submit"}
             </Button>
           </Stack>
         </DialogContent>
@@ -315,7 +339,7 @@ const DashboardDialogs = ({
       >
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 3, pb: 1 }}>
           <Typography sx={{ fontWeight: 700, fontSize: "1.5rem", color: "#374151" }}>
-            {editingDept ? "Configure Cluster" : "Provision Cluster"}
+            {editingDept ? "Edit Department" : "Add Department"}
           </Typography>
           <IconButton onClick={handleDeptDialogClose} size="small" sx={{ color: "#9ca3af" }}>
             <CloseIcon />
@@ -324,7 +348,7 @@ const DashboardDialogs = ({
         <DialogContent sx={{ p: 4, pt: 2 }}>
           <Stack spacing={2.5}>
             <TextField
-              placeholder="Cluster ID"
+              placeholder="Department ID"
               value={deptForm.id || deptForm.Dep_id}
               onChange={(e) => setDeptForm({ ...deptForm, id: e.target.value })}
               fullWidth
@@ -335,7 +359,7 @@ const DashboardDialogs = ({
               }}
             />
             <TextField
-              label="Title"
+              label="Department Name"
               value={deptForm.title}
               onChange={(e) => setDeptForm({ ...deptForm, title: e.target.value })}
               fullWidth
@@ -346,10 +370,11 @@ const DashboardDialogs = ({
               }}
             />
             <TextField
-              label="Visual Accent (Hex)"
-              value={deptForm.color}
-              onChange={(e) => setDeptForm({ ...deptForm, color: e.target.value })}
+              label="Department Color"
+              value={deptForm.color || "#ffff"}
+              InputProps={{ readOnly: true }}
               fullWidth
+              helperText="Using default color #ffff for department tags"
               sx={{
                 "& .MuiOutlinedInput-root": { borderRadius: "14px", background: "rgba(255, 255, 255, 0.3)" },
                 "& .MuiInputLabel-root": { color: "#000", fontWeight: 700 },
@@ -375,7 +400,7 @@ const DashboardDialogs = ({
               fullWidth
               sx={actionButtonStyle}
             >
-              Verify Configuration
+              Save Department
             </Button>
           </Stack>
         </DialogContent>

@@ -529,7 +529,7 @@ const HRProjectProgress = () => {
             }
 
             try {
-                const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/hr_projects_progress", {
+                const res = await axios.get("http://localhost:8080/admin/hr_projects_progress", {
                     headers: { Authorization: token, "Content-Type": "application/json" },
                 });
                 setProjects(res.data);
@@ -549,7 +549,7 @@ const HRProjectProgress = () => {
         setOverviewLoading(true);
         try {
             const res = await axios.get(
-                `https://project-management-sodtware-backend-end.onrender.com/admin/project-overview/${project._id}`,
+                `http://localhost:8080/admin/project-overview/${project._id}`,
                 {
                     headers: { Authorization: token, "Content-Type": "application/json" },
                 },

@@ -68,7 +68,7 @@ const getDeptNameFromId = (id) => {
   if (n.includes("graphic")) return "Graphic Design";
   return null;
 };
-const BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
+const BASE_URL = "http://localhost:8080";
 export default function Employeeeverything({ deptId }) {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);

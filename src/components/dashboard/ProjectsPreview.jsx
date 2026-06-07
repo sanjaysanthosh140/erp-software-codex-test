@@ -25,7 +25,7 @@ const ProjectsPreview = ({ userId, maxProjects }) => {
       try {
         axios
           .get(
-            "https://project-management-sodtware-backend-end.onrender.com/employee_included_proj",
+            "http://localhost:8080/employee_included_proj",
             {
               headers: {
                 Authorization: `${userId}`,

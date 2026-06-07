@@ -18,10 +18,13 @@ import TeamChat from "../../components/TeamChat";
 import Employeeeverything from "../../components/Employeeeverything";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import axios from "axios";
-
+import { NotificationBell } from "../../components/GlobalNotifications";
+// import { useSocket } from "../../context/SocketContext";
+// import { useToast } from "../../context/ToastContext";
 const speakFemale = (text) => {
+  // speakFemale: small helper to speak a message aloud using the browser voice.
+  // Use when you want a short spoken confirmation or greeting (non-critical).
   if (!("speechSynthesis" in window)) return;
-
   // Cancel any ongoing speech to avoid overlapping or double triggers
   window.speechSynthesis.cancel();
 
@@ -40,7 +43,7 @@ const speakFemale = (text) => {
         v.name.toLowerCase().includes("samantha") ||
         v.name.toLowerCase().includes("victoria") ||
         v.name.toLowerCase().includes("microsoft zira") ||
-        v.name.toLowerCase().includes("salli")
+        v.name.toLowerCase().includes("salli"),
     );
 
     if (femaleVoice) {
@@ -67,7 +70,6 @@ const speakFemale = (text) => {
 
 const PRIMARY = "#0f172a";
 const SECONDARY = "#64748b";
-
 const EmployeeCockpit = (props) => {
   const { deptId: paramDeptId } = useParams();
   const deptId = props.deptId || paramDeptId || "it";
@@ -77,20 +79,53 @@ const EmployeeCockpit = (props) => {
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const [openEverything, setOpenEverything] = React.useState(false);
   const navigate = useNavigate();
+  // const socket = useSocket();
+  // const { showToast } = useToast();
+
+  const playBeep = (opts = {}) => {
+    // playBeep: play a short beep tone to draw attention.
+    // We keep this local for UI feedback (toasts use the same beep elsewhere).
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = opts.type || "sine";
+      o.frequency.value = opts.freq || 880;
+      g.gain.value = opts.volume || 0.12;
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      setTimeout(() => {
+        o.stop();
+        try {
+          ctx.close();
+        } catch (e) {}
+      }, opts.duration || 120);
+    } catch (e) {
+      // Audio unsupported
+    }
+  };
 
   /* ── Logout ── */
   const handleLogout = async () => {
     if (isLoggingOut) return;
+    // NOTE: GlobalNotifications now handles project toasts and beeps globally.
+    // We keep the playBeep helper here for local uses (greetings, confirmations).
     setIsLoggingOut(true);
     try {
       if (token) {
         await axios.post(
-          "https://project-management-sodtware-backend-end.onrender.com/admin/attendance",
+          "http://localhost:8080/admin/attendance",
           { action: "PUNCH_OUT" },
-          { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          },
         );
       }
-
     } catch (error) {
       console.error("Failed to punch out during logout", error);
     } finally {
@@ -103,13 +138,16 @@ const EmployeeCockpit = (props) => {
 
       if (!token) {
         // Rule 4: Missing token/session
-        message = "Attendance information appears incomplete. Please contact the authorized administrator for verification.";
+        message =
+          "Attendance information appears incomplete. Please contact the authorized administrator for verification.";
       } else if (timeInMins >= 570 && timeInMins < 810) {
         // Rule 1: 09:30 AM - 01:30 PM
-        message = "Please note, logging out before 1:30 PM will mark your attendance as half day. Kindly ensure your scheduled work is completed.";
+        message =
+          "Please note, logging out before 1:30 PM will mark your attendance as half day. Kindly ensure your scheduled work is completed.";
       } else if (timeInMins >= 810 && timeInMins < 1020) {
         // Rule 2: 01:30 PM - 04:59 PM
-        message = "Please note, your logout time is below the standard eight working hours. Only your actual worked duration will be recorded.";
+        message =
+          "Please note, your logout time is below the standard eight working hours. Only your actual worked duration will be recorded.";
       } else if (timeInMins >= 1020) {
         // Rule 3: 05:00 PM onwards (Successfully completed)
         if (timeInMins < 1110) {
@@ -118,15 +156,17 @@ const EmployeeCockpit = (props) => {
             "Thank you. Your work session is recorded. Have a wonderful evening.",
             "Work session complete. Enjoy your evening and rest well.",
             "Successfully recorded. Wishing you a peaceful and pleasant evening ahead.",
-            "Thank you for your hard work today. Have a great evening."
+            "Thank you for your hard work today. Have a great evening.",
           ];
           message = wishes[Math.floor(Math.random() * wishes.length)];
         } else {
-          message = "Thank you. Your work session has been recorded successfully. Have a pleasant evening.";
+          message =
+            "Thank you. Your work session has been recorded successfully. Have a pleasant evening.";
         }
       } else {
         // Rule 4: Fallback / Early morning / Mismatch
-        message = "Attendance information appears incomplete. Please contact the authorized administrator for verification.";
+        message =
+          "Attendance information appears incomplete. Please contact the authorized administrator for verification.";
       }
 
       speakFemale(message);
@@ -147,16 +187,19 @@ const EmployeeCockpit = (props) => {
       try {
         if (token) {
           const res = await axios.get(
-            "https://project-management-sodtware-backend-end.onrender.com/employee_profile",
+            "http://localhost:8080/employee_profile",
             {
               headers: {
                 Authorization: `${token}`,
                 "Content-Type": "application/json",
               },
-            }
+            },
           );
           const profileData = Array.isArray(res.data) ? res.data[0] : res.data;
           setProfile(profileData);
+          console.log("emp profile", profileData.department);
+          // socket.emit("join_department", profileData.department);
+          // join department will be emitted in the socket effect below once socket & profile are ready
         }
       } catch (error) {
         console.error("Failed to fetch profile in Cockpit", error);
@@ -165,9 +208,14 @@ const EmployeeCockpit = (props) => {
     fetchProfile();
   }, [token]);
 
+  
+
   React.useEffect(() => {
     if (profile && sessionStorage.getItem("justLoggedIn")) {
-      const fName = profile.name?.split(" ")[0] || profile.username?.split(" ")[0] || "there";
+      const fName =
+        profile.name?.split(" ")[0] ||
+        profile.username?.split(" ")[0] ||
+        "there";
       speakFemale(`Welcome to the dashboard, ${fName}.`);
       sessionStorage.removeItem("justLoggedIn");
     }
@@ -175,9 +223,7 @@ const EmployeeCockpit = (props) => {
 
   /* Derive first name for greeting */
   const firstName =
-    profile?.name?.split(" ")[0] ||
-    profile?.username?.split(" ")[0] ||
-    "there";
+    profile?.name?.split(" ")[0] || profile?.username?.split(" ")[0] || "there";
 
   return (
     <>
@@ -257,51 +303,54 @@ const EmployeeCockpit = (props) => {
             </Box>
           </Box>
 
-          {/* Logout pill */}
-          <Box
-            component="button"
-            onClick={handleLogout}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 1,
-              px: { xs: 3, sm: 4 },
-              py: { xs: 1, sm: 1.2 },
-              border: "1px solid rgba(15, 23, 42, 0.12)",
-              borderRadius: "12px",
-              background: "#ffffff",
-              color: "#475569",
-              fontWeight: 600,
-              fontSize: { xs: "0.85rem", sm: "0.95rem" },
-              cursor: "pointer",
-              letterSpacing: "0.01em",
-              transition: "all 0.2s ease",
-              whiteSpace: "nowrap",
-              mt: { xs: 0.3, sm: 0.2 },
-              flexShrink: 0,
-              boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-              "&:hover": {
-                background: "#f1f5f9",
-                color: "#0f172a",
-                borderColor: "rgba(15, 23, 42, 0.2)",
-              },
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          {/* Top actions */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <NotificationBell />
+            <Box
+              component="button"
+              onClick={handleLogout}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                px: { xs: 3, sm: 4 },
+                py: { xs: 1, sm: 1.2 },
+                border: "1px solid rgba(15, 23, 42, 0.12)",
+                borderRadius: "12px",
+                background: "#ffffff",
+                color: "#475569",
+                fontWeight: 600,
+                fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                cursor: "pointer",
+                letterSpacing: "0.01em",
+                transition: "all 0.2s ease",
+                whiteSpace: "nowrap",
+                mt: { xs: 0.3, sm: 0.2 },
+                flexShrink: 0,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                "&:hover": {
+                  background: "#f1f5f9",
+                  color: "#0f172a",
+                  borderColor: "rgba(15, 23, 42, 0.2)",
+                },
+              }}
             >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-            {isLoggingOut ? "Logging out..." : "Logout"}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              {isLoggingOut ? "Logging out..." : "Logout"}
+            </Box>
           </Box>
         </Box>
 
@@ -376,7 +425,14 @@ const EmployeeCockpit = (props) => {
                 "&:hover": { background: "#e0e0e0" },
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#000"
+                strokeWidth="2.5"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>

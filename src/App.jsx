@@ -9,6 +9,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
 import theme from "./theme";
 import { ToastProvider } from "./context/ToastContext";
+import GlobalNotifications from "./components/GlobalNotifications";
 import MainLayout from "./components/layout/MainLayout";
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
@@ -22,6 +23,7 @@ import AdminRoleManager from "./pages/admin-side/AdminRoleManager";
 import Head from "./pages/admin-side/Head";
 import HeadProjectView from "./pages/admin-side/HeadProjectView";
 import HeadProjectOverview from "./pages/admin-side/HeadProjectOverview";
+import HeadBillings from "./pages/admin-side/HeadBillings";
 import CustomProjectsList from "./pages/admin-side/CustomProjectsList";
 import CustomProjectDetail from "./pages/admin-side/CustomProjectDetail";
 
@@ -60,6 +62,7 @@ function App() {
   return (
     <ToastProvider>
       <ThemeProvider theme={theme}>
+        <GlobalNotifications />
         <CssBaseline />
         <Router>
           <Routes>
@@ -104,6 +107,7 @@ function App() {
               path="/head/project-overview"
               element={<HeadProjectOverview />}
             />
+            <Route path="/head/billings" element={<HeadBillings />} />
             <Route path="/head/custom-projects" element={<CustomProjectsList />} />
             <Route path="/head/custom-projects/:id" element={<CustomProjectDetail />} />
 

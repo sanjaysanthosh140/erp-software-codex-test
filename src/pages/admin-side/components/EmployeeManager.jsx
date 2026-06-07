@@ -140,16 +140,26 @@ const EmployeeManager = ({
                 displayEmpty
               >
                 <MenuItem value="ALL">{isAdminView ? "All Roles" : "All Departments"}</MenuItem>
-                {departmentsList.map((item) => (
-                  <MenuItem key={item} value={item}>{item}</MenuItem>
-                ))}
+                {departmentsList.map((item, idx) => {
+                  const label = typeof item === "string"
+                    ? item
+                    : item.title || item.name || item.department || item.departmentName || JSON.stringify(item);
+                  const key = typeof item === "string"
+                    ? item
+                    : item._id || item.id || item.Dep_id || label || `dept-${idx}`;
+                  return (
+                    <MenuItem key={key} value={label}>
+                      {label}
+                    </MenuItem>
+                  );
+                })}
               </Select>
             </FormControl>
 
             <Stack direction="row" spacing={1.5}>
               <Button
                 variant="contained"
-                startIcon={<AddIcon />}
+                 startIcon={<AddIcon />}
                 onClick={onAddEmployee}
                 sx={{
                   background: "#1e40af",
@@ -164,7 +174,7 @@ const EmployeeManager = ({
                   boxShadow: "none"
                 }}
               >
-                + Employee
+                 Employee
               </Button>
               <Button
                 variant="contained"
@@ -183,7 +193,7 @@ const EmployeeManager = ({
                   boxShadow: "none"
                 }}
               >
-                + User Manage
+                + heads
               </Button>
             </Stack>
           </Stack>

@@ -102,7 +102,7 @@ const DepartmentGateway = () => {
 
   useEffect(() => {
     axios
-      .get("https://project-management-sodtware-backend-end.onrender.com/admin/departments")
+      .get("http://localhost:8080/admin/departments")
       .then((res) => {
         setDepartments(res.data);
         setLoading(false);
@@ -122,7 +122,7 @@ const DepartmentGateway = () => {
         return;
       }
 
-      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/employee_profile", {
+      const res = await axios.get("http://localhost:8080/employee_profile", {
         headers: {
           Authorization: `${token}`,
           "Content-Type": "application/json",
@@ -144,7 +144,20 @@ const DepartmentGateway = () => {
           `Welcome back, ${employeeName}! Entering ${deptDisplay}.`,
           "success"
         );
-        navigate(`/employee/cockpit/${deptId}`);
+        // Mark that user just entered so cockpit can show a welcome if needed
+        try {
+          sessionStorage.setItem("justLoggedIn", "1");
+        } catch (e) {}
+
+        // Navigate to cockpit then reload once so socket establishes reliably
+        navigate(`/employee/cockpit/${deptId}`, { replace: true });
+        setTimeout(() => {
+          try {
+            window.location.reload();
+          } catch (e) {
+            console.warn("Reload failed:", e);
+          }
+        }, 250);
       } else {
         showToast(
           `Hi ${employeeName}, you currently only have access to the ${userDeptDisplay} department.`,

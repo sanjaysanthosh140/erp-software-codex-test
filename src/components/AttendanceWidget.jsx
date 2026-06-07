@@ -67,7 +67,7 @@ const AttendanceWidget = ({ currentUserId }) => {
   useEffect(() => {
     if (!currentUserId) return;
     axios
-      .get("https://project-management-sodtware-backend-end.onrender.com/employee_included_proj", {
+      .get("http://localhost:8080/employee_included_proj", {
         headers: { Authorization: `${currentUserId}`, "Content-Type": "application/json" },
       })
       .then((res) => {
@@ -110,7 +110,7 @@ const AttendanceWidget = ({ currentUserId }) => {
     const token = localStorage.getItem("token");
     try {
       await axios.post(
-        "https://project-management-sodtware-backend-end.onrender.com/admin/attendance",
+        "http://localhost:8080/admin/attendance",
         { action },
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
