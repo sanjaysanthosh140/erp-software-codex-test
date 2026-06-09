@@ -536,7 +536,7 @@ const HeadProjectOverview = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axios.get("http://localhost:8080/admin/headProj", {
+        const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/headProj", {
           headers: { Authorization: token, "Content-Type": "application/json" },
         });
         console.log(res.data);
@@ -558,7 +558,7 @@ const HeadProjectOverview = () => {
     setOverviewLoading(true);
     try {
       const res = await axios.get(
-        `http://localhost:8080/admin/project-overview/${project._id}`,
+        `https://project-management-sodtware-backend-end.onrender.com/admin/project-overview/${project._id}`,
         {
           headers: { Authorization: token, "Content-Type": "application/json" },
         },

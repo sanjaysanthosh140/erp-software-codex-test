@@ -47,7 +47,7 @@ const PAPER_BG = "#ffffff";
 const TEXT_DARK = "#000000";
 const TEXT_MUTED = "#64748b";
 const BORDER = "rgba(15, 23, 42, 0.08)";
-let BASE_URL = "http://localhost:8080";
+let BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
 const REQUIRED_DEPTS = [
   "Content Writing",
   "Video Production",
@@ -215,7 +215,7 @@ export default function CustomProjectDetail() {
   };
   // async function checkHead(token) {
   // try {
-  // let res = await axios.get("http://localhost:8080/admin/admin_profile", {
+  // let res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/admin_profile", {
   // headers: {
   // Authorization: token,
   // "Content-Type": "application/json"

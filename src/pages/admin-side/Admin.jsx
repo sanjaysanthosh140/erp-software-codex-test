@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
 
 /** Select value to load tasks/subtasks from every project the employee is on */
 const ALL_PROJECTS_VALUE = "__ALL_PROJECTS__";

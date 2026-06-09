@@ -76,7 +76,7 @@ export default function CustomProjectDialog({ open, onClose }) {
   const fetchProjects = async () => {          
     try {
       setLoading(true);
-      const res = await axios.get("http://localhost:8080/admin/simple_custom_projects", {
+      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/simple_custom_projects", {
         headers: { Authorization: token }
       });
       setProjects(res.data || []);
@@ -94,7 +94,7 @@ export default function CustomProjectDialog({ open, onClose }) {
 //  get departmetns admins for list deparment and admin name 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("http://localhost:8080/admin/get_admins", {
+      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/get_admins", {
         headers: { Authorization: token }
       });
       const raw = res.data?.data ?? res.data;
@@ -158,7 +158,7 @@ export default function CustomProjectDialog({ open, onClose }) {
         }))
       };
 
-      await axios.post("http://localhost:8080/admin/simple_custom_project", payload, {
+      await axios.post("https://project-management-sodtware-backend-end.onrender.com/admin/simple_custom_project", payload, {
         headers: { Authorization: token }
       });
       setIsAddMode(false);
@@ -179,7 +179,7 @@ export default function CustomProjectDialog({ open, onClose }) {
         status: "pending"
       }));
 
-      await axios.post("http://localhost:8080/admin/simple_custom_project_global_task", {
+      await axios.post("https://project-management-sodtware-backend-end.onrender.com/admin/simple_custom_project_global_task", {
         projectId: selectedProject._id,
         title: newTaskTitle,
         departments: deptsForTask
@@ -195,7 +195,7 @@ export default function CustomProjectDialog({ open, onClose }) {
 
   const handleUpdateTaskStatus = async (taskId, departmentId, status) => {
     try {
-      await axios.put("http://localhost:8080/admin/simple_custom_project_global_task", {
+      await axios.put("https://project-management-sodtware-backend-end.onrender.com/admin/simple_custom_project_global_task", {
         projectId: selectedProject._id,
         departmentName: selectedProject.departmentName,
         taskId,

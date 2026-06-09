@@ -95,7 +95,7 @@ export default function GlobalNotifications() {
         const token =
           localStorage.getItem("token") || localStorage.getItem("adminToken");
         if (!token) return;
-        const res = await axios.get("http://localhost:8080/employee_profile", {
+        const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/employee_profile", {
           headers: { Authorization: token },
         });
         const profileData = Array.isArray(res.data) ? res.data[0] : res.data;

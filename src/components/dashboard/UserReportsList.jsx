@@ -56,7 +56,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     setError(null);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:8080/admin/reports", {
+      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/reports", {
         headers: {
           Authorization: `${token}`,
         },
@@ -94,7 +94,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:8080/admin/update_report/${editingId}`,
+      await axios.put(`https://project-management-sodtware-backend-end.onrender.com/admin/update_report/${editingId}`,
         { desc: editDesc },
         { headers: { Authorization: `${token}` } }
       );
@@ -125,7 +125,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     setDeleteDialogOpen(false); // Close immediately for responsive feel
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:8080/admin/delete_report/${reportToDelete}`, {
+      await axios.delete(`https://project-management-sodtware-backend-end.onrender.com/admin/delete_report/${reportToDelete}`, {
         headers: { Authorization: `${token}` }
       });
       showToast("Report deleted successfully", "success");

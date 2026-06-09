@@ -4,11 +4,10 @@
  * All API logic preserved exactly.
  */
 import React, { useState, useEffect } from "react";
-import { Box, Typography, Grid, Button, Chip, Paper } from "@mui/material";
+import { Box, Typography, Grid, Button, Chip, Paper, Pagination } from "@mui/material";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import axios from "axios";
 
@@ -18,31 +17,59 @@ const BORDER = "rgba(15,23,42,0.09)";
 
 const ProjectsPreview = ({ userId, maxProjects }) => {
   const [projects, setProjects] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+  const pageSize = maxProjects || 9;
 
   useEffect(() => {
     const fetchProjects = async () => {
+      setIsLoading(true);
       try {
-        axios
-          .get(
-            "http://localhost:8080/employee_included_proj",
-            {
-              headers: {
-                Authorization: `${userId}`,
-                "Content-Type": "application/json",
-              },
-            }
-          )
-          .then((res) => {
-            console.log(res.data);
-            setProjects(res.data);
-          });
+        const response = await axios.get(
+          "https://project-management-sodtware-backend-end.onrender.com/employee_included_proj",
+          {
+            headers: {
+              Authorization: `${userId}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        setProjects(response.data || []);
       } catch (error) {
         console.error("Error fetching projects:", error);
+        setProjects([]);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchProjects();
+    if (userId) {
+      fetchProjects();
+    } else {
+      setProjects([]);
+      setIsLoading(false);
+    }
   }, [userId]);
+
+  useEffect(() => {
+    if (currentPage > 1) {
+      const totalPages = Math.max(1, Math.ceil(projects.length / pageSize));
+      if (currentPage > totalPages) {
+        setCurrentPage(totalPages);
+      }
+    }
+  }, [projects, pageSize, currentPage]);
+
+  const totalPages = Math.max(1, Math.ceil(projects.length / pageSize));
+  const visibleProjects = projects.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const handlePageChange = (event, page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleEnroll = async (projectId) => {
     try {
@@ -98,7 +125,51 @@ const ProjectsPreview = ({ userId, maxProjects }) => {
     project.desc ||
     "Complete UIUX Overall of the shopping experience";
 
-  if (projects.length === 0) return null;
+  if (isLoading) {
+    return (
+      <Box>
+        <Typography
+          sx={{
+            fontWeight: 800,
+            color: PRIMARY,
+            fontSize: { xs: "1.1rem", sm: "1.2rem" },
+            letterSpacing: "-0.02em",
+            mb: 0.5,
+          }}
+        >
+          My Projects
+        </Typography>
+        <Typography
+          sx={{ color: SECONDARY, fontSize: "0.9rem", mb: 2 }}
+        >
+          Loading your projects...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!projects.length) {
+    return (
+      <Box>
+        <Typography
+          sx={{
+            fontWeight: 800,
+            color: PRIMARY,
+            fontSize: { xs: "1.1rem", sm: "1.2rem" },
+            letterSpacing: "-0.02em",
+            mb: 0.5,
+          }}
+        >
+          My Projects
+        </Typography>
+        <Typography
+          sx={{ color: SECONDARY, fontSize: "0.9rem", mb: 2 }}
+        >
+          You currently have no assigned projects.
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -126,14 +197,14 @@ const ProjectsPreview = ({ userId, maxProjects }) => {
 
       {/* Project cards grid — 1 col xs, 2 col sm, 3 col md */}
       <Grid container spacing={{ xs: 2, sm: 2.5 }}>
-        {projects.slice(0, maxProjects || 9).map((project, index) => {
+        {visibleProjects.map((project, index) => {
           const daysRemaining = getDaysRemaining(project.deadline);
           const isUrgent = daysRemaining <= 7;
           const priorityColor = getPriorityColor(project.priority);
           const priorityBg = getPriorityBg(project.priority);
 
           return (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={project._id}>
+            <Grid item xs={12} sm={6} md={4} key={project._id}>
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -292,6 +363,32 @@ const ProjectsPreview = ({ userId, maxProjects }) => {
           );
         })}
       </Grid>
+
+      {totalPages > 1 && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mt: 3,
+          }}
+        >
+          <Pagination
+            count={totalPages}
+            page={currentPage}
+            onChange={handlePageChange}
+            shape="rounded"
+            sx={{
+              "& .MuiPaginationItem-root": {
+                color: "#000",
+              },
+              "& .MuiPaginationItem-root.Mui-selected": {
+                backgroundColor: "#e2e8f0",
+                color: "#000",
+              },
+            }}
+          />
+        </Box>
+      )}
     </Box>
   );
 };

@@ -93,7 +93,7 @@ const headTaskSourceChipLabel = (task) => {
   return "From: HR (legacy)";
 };
 
-const API_BASE_URL = "http://localhost:8080"
+const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com"
 
 // --- DM Projects Helpers ---
 const HR_HYBRID_DEPTS = ["Content Writing", "Video Production", "Editing", "Graphic Design", "DM"];
@@ -120,6 +120,7 @@ const HRDashboard = () => {
   // Data State
   const [users, setUsers] = useState([]);
   const [admins, setAdmins] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [reports, setReports] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -210,6 +211,7 @@ const HRDashboard = () => {
         fetchProjects(),
         fetchHeadTasks(),
         fetchDmProjects(),
+        fetchEmployees()
       ]);
       setLoading(false);
     };
@@ -303,7 +305,20 @@ const HRDashboard = () => {
     }
   };
 
-
+const fetchEmployees = async () => {
+  try {
+    const res = await axios.get(`${API_BASE_URL}/employeelists`, {
+      headers: {
+        Authorization: localStorage.getItem("adminToken"),
+      },
+    });
+    console.log("employee data for tasks", res.data);
+    setEmployees(res.data || []);
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    setEmployees([]);
+  }
+};
   // --- Handlers ---
   const handleTabChange = (e, newValue) => {
     if (newValue === 4) {
@@ -825,11 +840,11 @@ const HRDashboard = () => {
                               },
                             }}
                           >
-                            {admins.map((admin) => (
-                              <MenuItem key={admin._id} value={admin._id} sx={{ fontWeight: 600, py: 1.5 }}>
+                            {employees.map((employee) => (
+                              <MenuItem key={employee._id} value={employee._id} sx={{ fontWeight: 600, py: 1.5 }}>
                                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                  <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{admin.name}</Typography>
-                                  <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{admin.department || "Head Operations"}</Typography>
+                                  <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{employee.name}</Typography>
+                                  <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{employee.department || employee.post || "Employee"}</Typography>
                                 </Box>
                               </MenuItem>
                             ))}
@@ -982,7 +997,13 @@ const HRDashboard = () => {
                   <Box sx={{ maxHeight: "none", overflowY: "visible", pr: 0 }}>
                     <Grid container spacing={3}>
                       {headTasks.map((task) => {
-                        const selectedHead = admins.find((a) => a._id === task.headId);
+                        const selectedHead =
+                          employees.find((e) => e._id === task.headId) ||
+                          admins.find((a) => a._id === task.headId);
+                        const headTitle =
+                          selectedHead?.name || task.headName || task.head || "Unknown";
+                        const headDepartment =
+                          selectedHead?.department || selectedHead?.post || task.department || "Operations";
                         const isCompleted = task.status === "completed";
                         return (
                           <Grid item xs={12} md={6} key={task._id}>
@@ -1010,10 +1031,10 @@ const HRDashboard = () => {
                                     </Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                       <Avatar sx={{ width: 20, height: 20, fontSize: '0.7rem', bgcolor: '#e0f2fe', color: '#0369a1' }}>
-                                        {selectedHead?.name?.[0] || 'H'}
+                                        {headTitle?.[0] || 'H'}
                                       </Avatar>
                                       <Typography sx={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 600 }}>
-                                        {selectedHead?.name || "Unknown"} · {selectedHead?.department || "Operations"}
+                                        {headTitle} · {headDepartment}
                                       </Typography>
                                     </Box>
                                   </Box>

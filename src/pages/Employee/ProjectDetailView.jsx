@@ -274,9 +274,9 @@ const ProjectDetailView = () => {
       const headers = { Authorization: `${token}`, "Content-Type": "application/json" };
 
       const [projectsRes, tasksRes, todosRes] = await Promise.all([
-        axios.get("http://localhost:8080/employee_included_proj", { headers }),
-        axios.get(`http://localhost:8080/emp_proj-tasks/${projectId}`, { headers }),
-        axios.get("http://localhost:8080/achive_created_todo_list", { headers }),
+        axios.get("https://project-management-sodtware-backend-end.onrender.com/employee_included_proj", { headers }),
+        axios.get(`https://project-management-sodtware-backend-end.onrender.com/emp_proj-tasks/${projectId}`, { headers }),
+        axios.get("https://project-management-sodtware-backend-end.onrender.com/achive_created_todo_list", { headers }),
       ]);
 
       const projectMetadata = projectsRes.data.find((p) => p._id === projectId);
@@ -309,7 +309,7 @@ const ProjectDetailView = () => {
       try {
         setLoading(true);
         const res = await axios.get(
-          "http://localhost:8080/admin/users",
+          "https://project-management-sodtware-backend-end.onrender.com/admin/users",
           { headers: { Authorization: `${token}` } }
         );
         const users = Array.isArray(res.data) ? res.data : [];
@@ -335,7 +335,7 @@ const ProjectDetailView = () => {
         setLoading(true);
         const headers = { Authorization: `${token}`, "Content-Type": "application/json" };
         const projectsRes = await axios.get(
-          "http://localhost:8080/employee_included_proj",
+          "https://project-management-sodtware-backend-end.onrender.com/employee_included_proj",
           { headers, params: { empId: selectedEmployeeId } }
         );
         const projects = Array.isArray(projectsRes.data) ? projectsRes.data : [];
@@ -368,11 +368,11 @@ const ProjectDetailView = () => {
         const headers = { Authorization: `${token}`, "Content-Type": "application/json" };
         const [tasksRes, todosRes] = await Promise.all([
           axios.get(
-            `http://localhost:8080/emp_proj-tasks/${selectedProjectId}`,
+            `https://project-management-sodtware-backend-end.onrender.com/emp_proj-tasks/${selectedProjectId}`,
             { headers, params: { empId: selectedEmployeeId } }
           ),
           axios.get(
-            "http://localhost:8080/achive_created_todo_list",
+            "https://project-management-sodtware-backend-end.onrender.com/achive_created_todo_list",
             { headers, params: { empId: selectedEmployeeId } }
           ),
         ]);
@@ -466,7 +466,7 @@ const ProjectDetailView = () => {
         project_id: projectId, user_subTaks: subTaskList, todolist: subTaskList,
       };
       const res_msg = await axios.post(
-        "http://localhost:8080/add_multiple_todos",
+        "https://project-management-sodtware-backend-end.onrender.com/add_multiple_todos",
         payload, { headers }
       );
       const successMsg = typeof res_msg.data.message === "string"

@@ -48,6 +48,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 import CreateProjectDialog from "../../components/CreateProjectDialog";
 import TeamChat from "../../components/TeamChat";
+import ProductionActivityLogger from "./ProductionActivityLogger";
 // import EverythingComponent from "../../components/EverythingComponent";
 import io from "socket.io-client";
 import { NotificationBell } from "../../components/GlobalNotifications";
@@ -89,7 +90,7 @@ const iPhoneGlassButton = {
 
 const Head = () => {
   const navigate = useNavigate();
-  const API_BASE_URL = "http://localhost:8080";
+  const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
   const socket = io(API_BASE_URL);
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -107,7 +108,7 @@ const Head = () => {
 
   const [openDialog, setOpenDialog] = useState(false);
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
-  const [openEverything, setOpenEverything] = useState(false);
+  const [activeView, setActiveView] = useState("dashboard"); // 'dashboard' or 'production-activity'
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -365,7 +366,7 @@ const Head = () => {
       // Add new task via API (POST only)
       console.log("form data", formData);
       const response = await axios.post(
-        "http://localhost:8080/admin/add_task",
+        "https://project-management-sodtware-backend-end.onrender.com/admin/add_task",
         formData,
         {
           headers: {
@@ -536,15 +537,19 @@ const Head = () => {
           </Box>
         </Box>
 
-        <Box
-          sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}
-        >
-          {/* Status Cards Section */}
-          <Grid
-            container
-            spacing={2}
-            sx={{ mb: 6, width: "100%", justifyContent: "space-between" }}
+        {/* Conditional View Rendering */}
+        {activeView === "production-activity" ? (
+          <ProductionActivityLogger onBack={() => setActiveView("dashboard")} />
+        ) : (
+          <Box
+            sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}
           >
+            {/* Status Cards Section */}
+            <Grid
+              container
+              spacing={2}
+              sx={{ mb: 6, width: "100%", justifyContent: "space-between" }}
+            >
             {[
               { title: "Active Tasks", value: "03", icon: <AssignmentIcon /> },
               { title: "Processing", value: "01", icon: <NotesIcon /> },
@@ -687,7 +692,7 @@ const Head = () => {
               {
                 label: "Everything",
                 icon: <AssessmentIcon />,
-                onClick: () => setOpenEverything(true),
+                onClick: () => setActiveView("production-activity"),
               },
             ].map((action, idx) => (
               <Button
@@ -971,6 +976,7 @@ const Head = () => {
             </Grid>
           </Box>
         </Box>
+        )}
 
         {/* --- Dialogs --- */}
         <Dialog

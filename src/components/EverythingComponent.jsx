@@ -18,7 +18,7 @@
 //   const fetchProjects = async () => {
 //     try {
 //       setLoading(true);
-//       const res = await axios.get("http://localhost:8080/admin/simple_custom_projects", {
+//       const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/simple_custom_projects", {
 //         headers: { Authorization: token }
 //       });
 //       setProjects(res.data || []);

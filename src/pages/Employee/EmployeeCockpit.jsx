@@ -9,7 +9,7 @@
  * UserReportsList is rendered inside WorkReportForm now — NOT separately here.
  */
 import React from "react";
-import { Box, Typography, Divider } from "@mui/material";
+import { Box, Typography, Divider, Badge, IconButton, TextField, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import AttendanceWidget from "../../components/AttendanceWidget";
 import ProjectsPreview from "../../components/dashboard/ProjectsPreview";
@@ -17,6 +17,7 @@ import WorkReportForm from "../../components/dashboard/WorkReportForm";
 import TeamChat from "../../components/TeamChat";
 import Employeeeverything from "../../components/Employeeeverything";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import { NotificationBell } from "../../components/GlobalNotifications";
 // import { useSocket } from "../../context/SocketContext";
@@ -49,8 +50,7 @@ const speakFemale = (text) => {
     if (femaleVoice) {
       utterance.voice = femaleVoice;
     } else {
-      // Fallback: If no explicit female voice is found, we use the default
-      // but increase pitch slightly to lean female
+      // Fallback: increase pitch slightly
       utterance.pitch = 1.2;
     }
 
@@ -68,46 +68,40 @@ const speakFemale = (text) => {
   }
 };
 
-const PRIMARY = "#0f172a";
-const SECONDARY = "#64748b";
-const EmployeeCockpit = (props) => {
-  const { deptId: paramDeptId } = useParams();
-  const deptId = props.deptId || paramDeptId || "it";
-  const token = localStorage.getItem("token");
-  const [profile, setProfile] = React.useState(null);
-  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
-  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
-  const [openEverything, setOpenEverything] = React.useState(false);
+const EmployeeCockpit = () => {
   const navigate = useNavigate();
-  // const socket = useSocket();
-  // const { showToast } = useToast();
+  const { deptId } = useParams();
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const token = localStorage.getItem("token") || null;
+  const [refreshTrigger, setRefreshTrigger] = React.useState(0);
+  const [profile, setProfile] = React.useState(null);
+  const [headId, setHeadId] = React.useState(null);
+  const [tasksLoading, setTasksLoading] = React.useState(false);
+  const [headTasks, setHeadTasks] = React.useState([]);
+  const [taskPanelOpen, setTaskPanelOpen] = React.useState(false);
+  const [successMessage, setSuccessMessage] = React.useState(null);
+  const [errorMessage, setErrorMessage] = React.useState(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = React.useState(false);
+  const [openEverything, setOpenEverything] = React.useState(false);
+  const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
+  const PRIMARY = "#0f172a";
+  const SECONDARY = "rgba(15,23,42,0.6)";
 
-  const playBeep = (opts = {}) => {
-    // playBeep: play a short beep tone to draw attention.
-    // We keep this local for UI feedback (toasts use the same beep elsewhere).
+  const parseJwt = (tkn) => {
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      const ctx = new AudioCtx();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = opts.type || "sine";
-      o.frequency.value = opts.freq || 880;
-      g.gain.value = opts.volume || 0.12;
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.start();
-      setTimeout(() => {
-        o.stop();
-        try {
-          ctx.close();
-        } catch (e) {}
-      }, opts.duration || 120);
+      if (!tkn) return null;
+      const payload = tkn.split(".")[1];
+      return JSON.parse(atob(payload));
     } catch (e) {
-      // Audio unsupported
+      return null;
     }
   };
 
-  /* ── Logout ── */
+  const openLogoutConfirm = () => {
+    if (isLoggingOut) return;
+    setLogoutConfirmOpen(true);
+  };
+
   const handleLogout = async () => {
     if (isLoggingOut) return;
     // NOTE: GlobalNotifications now handles project toasts and beeps globally.
@@ -116,7 +110,7 @@ const EmployeeCockpit = (props) => {
     try {
       if (token) {
         await axios.post(
-          "http://localhost:8080/admin/attendance",
+          "https://project-management-sodtware-backend-end.onrender.com/admin/attendance",
           { action: "PUNCH_OUT" },
           {
             headers: {
@@ -187,7 +181,7 @@ const EmployeeCockpit = (props) => {
       try {
         if (token) {
           const res = await axios.get(
-            "http://localhost:8080/employee_profile",
+            "https://project-management-sodtware-backend-end.onrender.com/employee_profile",
             {
               headers: {
                 Authorization: `${token}`,
@@ -206,6 +200,14 @@ const EmployeeCockpit = (props) => {
       }
     };
     fetchProfile();
+
+    if (token) {
+      const payload = parseJwt(token);
+      const resolvedHeadId = payload?._id || payload?.id || payload?.userId || null;
+      if (resolvedHeadId) {
+        setHeadId(resolvedHeadId);
+      }
+    }
   }, [token]);
 
   
@@ -220,6 +222,71 @@ const EmployeeCockpit = (props) => {
       sessionStorage.removeItem("justLoggedIn");
     }
   }, [profile]);
+
+  const fetchHeadTasks = async (resolvedHeadId) => {
+    const effectiveHeadId = resolvedHeadId || headId;
+    if (!effectiveHeadId) return;
+
+    setTasksLoading(true);
+    try {
+      const res = await axios.get(
+        `${API_BASE_URL}/admin/hr_assigned_tasks?headId=${effectiveHeadId}`,
+        {
+          headers: {
+            Authorization: `${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      setHeadTasks(res.data || []);
+    } catch (error) {
+      console.error("Failed to fetch head tasks", error);
+      setHeadTasks([]);
+    } finally {
+      setTasksLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (headId) {
+      fetchHeadTasks(headId);
+    }
+  }, [headId]);
+
+  const handleTaskIconClick = async () => {
+    // Refresh tasks whenever the user opens the panel to keep data accurate
+    try {
+      await fetchHeadTasks(headId);
+      setTaskPanelOpen((prev) => !prev);
+    } catch (e) {
+      console.error("Failed to refresh tasks on icon click", e);
+      setTaskPanelOpen((prev) => !prev);
+    }
+  };
+
+  const handleStatusChange = async (task, status) => {
+    try {
+      const payload = {
+        headId: task.headId,
+        title: task.title,
+        priority: task.priority,
+        deadline: task.deadline,
+        assignedDate: task.assignedDate,
+        status,
+      };
+      await axios.put(
+        `${API_BASE_URL}/admin/hr_assigned_tasks/${task._id}`,
+        payload,
+      );
+      setHeadTasks((prev) => prev.map((t) => (t._id === task._id ? { ...t, status } : t)));
+      setSuccessMessage("Task status updated");
+      setTimeout(() => setSuccessMessage(null), 1500);
+    } catch (err) {
+      console.error("Error updating status:", err);
+      setErrorMessage("Failed to update task status");
+      setTimeout(() => setErrorMessage(null), 2000);
+    }
+  };
 
   /* Derive first name for greeting */
   const firstName =
@@ -304,11 +371,25 @@ const EmployeeCockpit = (props) => {
           </Box>
 
           {/* Top actions */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, position: "relative" }}>
+            <IconButton
+              onClick={handleTaskIconClick}
+              sx={{
+                border: "1px solid rgba(15, 23, 42, 0.12)",
+                bgcolor: "#ffffff",
+                color: "#0f172a",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                "&:hover": { bgcolor: "#f1f5f9" },
+              }}
+            >
+              <Badge badgeContent={headTasks.length} color="primary">
+                <AssignmentIcon />
+              </Badge>
+            </IconButton>
             <NotificationBell />
             <Box
               component="button"
-              onClick={handleLogout}
+              onClick={openLogoutConfirm}
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -351,6 +432,102 @@ const EmployeeCockpit = (props) => {
               </svg>
               {isLoggingOut ? "Logging out..." : "Logout"}
             </Box>
+            {taskPanelOpen && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  right: 0,
+                  top: "100%",
+                  mt: 1,
+                  width: { xs: 320, sm: 360 },
+                  maxWidth: "100%",
+                  bgcolor: "#ffffff",
+                  border: "1px solid rgba(15,23,42,0.12)",
+                  borderRadius: "18px",
+                  boxShadow: "0 18px 45px rgba(15,23,42,0.14)",
+                  p: 2,
+                  zIndex: 20,
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography sx={{ fontWeight: 800, color: PRIMARY }}>
+                    Your Assigned Tasks
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                    {successMessage && (
+                      <Typography sx={{ color: 'green', fontSize: '0.85rem' }}>{successMessage}</Typography>
+                    )}
+                    {errorMessage && (
+                      <Typography sx={{ color: 'red', fontSize: '0.85rem' }}>{errorMessage}</Typography>
+                    )}
+                    <Button size="small" onClick={() => setHeadTasks([])} sx={{ textTransform: 'none' }}>Clear</Button>
+                  </Box>
+                </Box>
+
+                {tasksLoading ? (
+                  <Typography sx={{ color: SECONDARY, fontSize: "0.9rem" }}>
+                    Loading tasks...
+                  </Typography>
+                ) : headTasks.length === 0 ? (
+                  <Typography sx={{ color: SECONDARY, fontSize: "0.9rem" }}>
+                    No tasks assigned to you yet.
+                  </Typography>
+                ) : (
+                  headTasks.map((task) => (
+                    <Box
+                      key={task._id || task.headId || task.title}
+                      sx={{
+                        py: 1.25,
+                        borderBottom: "1px solid rgba(15,23,42,0.08)",
+                        '&:last-of-type': { borderBottom: 'none' },
+                      }}
+                    >
+                      <Typography sx={{ fontSize: "0.95rem", fontWeight: 700, color: PRIMARY, mb: 0.35 }}>
+                        {task.title || task.task || "Untitled task"}
+                      </Typography>
+                      <Typography sx={{ color: SECONDARY, fontSize: "0.8rem", mb: 0.5 }}>
+                        Priority: {task.priority || "Medium"}
+                      </Typography>
+
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography sx={{ color: SECONDARY, fontSize: '0.8rem' }}>
+                          Due: {task.deadline ? new Date(task.deadline).toLocaleDateString() : 'N/A'}
+                        </Typography>
+
+                        <TextField
+                          select
+                          fullWidth={false}
+                          size="small"
+                          value={task.status || 'pending'}
+                          onChange={(e) => handleStatusChange(task, e.target.value)}
+                          sx={{
+                            ml: 1,
+                            minWidth: 120,
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "10px",
+                              backgroundColor: "#f8fafc",
+                              fontSize: "0.9rem",
+                              fontWeight: 600,
+                              color: "#0f172a !important",
+                              "&:hover fieldset": { borderColor: "#cbd5e1" },
+                              "&.Mui-focused fieldset": { borderColor: "#3b82f6" },
+                            },
+                            "& .MuiSelect-select": {
+                              color: "#0f172a !important",
+                            },
+                          }}
+                        >
+                          <MenuItem value="pending">pending</MenuItem>
+                          <MenuItem value="in_progress">in_progress</MenuItem>
+                          <MenuItem value="completed">completed</MenuItem>
+                          {/* <MenuItem value="cancelled">cancelled</MenuItem> */}
+                        </TextField>
+                      </Box>
+                    </Box>
+                  ))
+                )}
+              </Box>
+            )}
           </Box>
         </Box>
 
@@ -379,6 +556,45 @@ const EmployeeCockpit = (props) => {
 
       {/* Floating chat bubble */}
       <TeamChat />
+
+      <Dialog
+        open={logoutConfirmOpen}
+        onClose={() => setLogoutConfirmOpen(false)}
+        aria-labelledby="logout-dialog-title"
+        aria-describedby="logout-dialog-description"
+        maxWidth="xs"
+        fullWidth={false}
+        PaperProps={{
+          sx: {
+            width: 360,
+            maxWidth: "90vw",
+            borderRadius: "18px",
+            mx: "auto",
+          },
+        }}
+      >
+        <DialogTitle id="logout-dialog-title">Confirm logout</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="logout-dialog-description">
+            Are you sure you want to logout? Your current session will end.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutConfirmOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              setLogoutConfirmOpen(false);
+              handleLogout();
+            }}
+            color="primary"
+            autoFocus
+          >
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Everything / Project Hub Modal View */}
       {openEverything && (
