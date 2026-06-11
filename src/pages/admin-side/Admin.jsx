@@ -120,6 +120,7 @@ function Admin() {
   const [employeeReports, setEmployeeReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeWorkSection, setActiveWorkSection] = useState("tasks");
 
   const [headAdmins, setHeadAdmins] = useState([]);
   const [headTasks, setHeadTasks] = useState([]);
@@ -518,38 +519,16 @@ function Admin() {
     <div id="admin-emp-dash" className="adm-page-bg">
       <div className="adm-shell">
         <header className="adm-hero">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div className="adm-hero-row">
             <div>
-              <p className="adm-eyebrow">Operations</p>
-              <h2 className="adm-title">Admin employee work dashboard</h2>
+              <h2 className="adm-title">Staff Work Dashboard</h2>
               <p className="adm-lede">
-                Select an employee, view included projects, then inspect assigned tasks and
-                completed subtasks.
+                Explore employee projects, assigned tasks, and completed subtasks.
               </p>
             </div>
             <button 
               onClick={handleLogout}
               className="adm-logout-btn"
-              style={{
-                background: '#fee2e2',
-                color: '#dc2626',
-                border: '1px solid #fecaca',
-                padding: '8px 16px',
-                borderRadius: '12px',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease',
-                marginTop: '10px'
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = '#fecaca';
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = '#fee2e2';
-              }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -562,6 +541,27 @@ function Admin() {
         </header>
 
         {error ? <div className="adm-alert">{error}</div> : null}
+
+        <div className="adm-section-tabs" role="tablist" aria-label="Dashboard sections">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeWorkSection === "tasks"}
+            className={`adm-section-tab ${activeWorkSection === "tasks" ? "adm-section-tab--active" : ""}`}
+            onClick={() => setActiveWorkSection("tasks")}
+          >
+            Tasks and subtasks
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeWorkSection === "department"}
+            className={`adm-section-tab ${activeWorkSection === "department" ? "adm-section-tab--active" : ""}`}
+            onClick={() => setActiveWorkSection("department")}
+          >
+            Department Task Allocation
+          </button>
+        </div>
 
         <div className="adm-controls">
           <div className="adm-field-card">
@@ -611,9 +611,9 @@ function Admin() {
 
         <div className="adm-stats">
           <StatCard accent title="Employee" value={selectedEmployee?.name || "-"} />
-          <StatCard title="Assigned tasks" value={totalTasks} />
-          <StatCard title="Completed tasks" value={completedTasks} />
-          <StatCard title="Subtasks done" value={`${completedSubTasks}/${totalSubTasks}`} />
+          <StatCard title="Assigned Task" value={totalTasks} />
+          <StatCard title="Subtasks done" value={completedSubTasks} />
+          <StatCard title="Completed Task" value={completedTasks} />
         </div>
 
         <div className="adm-progress-card">
@@ -626,13 +626,9 @@ function Admin() {
           </div>
         </div>
 
+        {activeWorkSection === "department" ? (
         <section className="adm-ceo-section">
-          <h3 className="adm-ceo-title">Assign tasks to department heads (CEO)</h3>
-          <p className="adm-ceo-copy">
-            Same workflow as HR: tasks are stored on <code>/admin/hr_assigned_tasks</code>.
-            New tasks from this dashboard are labeled <strong>CEO</strong> so heads can tell them apart from{" "}
-            <strong>HR</strong> assignments.
-          </p>
+          <h3 className="adm-ceo-title">Department Task Allocation</h3>
           {headTaskBanner.message ? (
             <div
               className={`adm-banner ${headTaskBanner.type === "ok" ? "adm-banner--ok" : "adm-banner--err"}`}
@@ -724,7 +720,7 @@ function Admin() {
               onClick={handleCeoHeadTaskSubmit}
               disabled={headTasksLoading}
             >
-              {editingHeadTask ? "Update head task" : "Assign to head"}
+              {editingHeadTask ? "Update" : "Submit"}
             </button>
             {editingHeadTask ? (
               <button type="button" className="adm-btn-ghost" onClick={cancelEditCeoHeadTask}>
@@ -734,7 +730,7 @@ function Admin() {
             {headTasksLoading ? <span className="adm-muted-inline">Loading…</span> : null}
           </div>
           <div className="adm-head-assignments">
-            <h4 className="adm-head-list-title">All head assignments</h4>
+            <h4 className="adm-head-list-title">Task History</h4>
             <p className="adm-head-list-hint">
               One fetch lists every task; below they are{" "}
               <strong>partitioned</strong> so CEO vs HR is obvious. Summary:{" "}
@@ -869,7 +865,9 @@ function Admin() {
             </div>
           </div>
         </section>
+        ) : null}
 
+        {activeWorkSection === "tasks" ? (
         <div className="adm-main-split">
           <div className="adm-panel adm-panel--tasks">
             <h3 className="adm-panel-title">Tasks and subtasks</h3>
@@ -942,7 +940,7 @@ function Admin() {
           </div>
 
           <aside className="adm-reports" aria-label="Employee reports">
-            <h3 className="adm-reports-title">Selected employee reports</h3>
+            <h3 className="adm-reports-title">Daily Work Report</h3>
             {reportsLoading ? <p className="adm-empty">Loading reports…</p> : null}
             {!reportsLoading && employeeReports.length === 0 ? (
               <p className="adm-empty">No reports found for selected employee.</p>
@@ -961,6 +959,7 @@ function Admin() {
               ))}
           </aside>
         </div>
+        ) : null}
       </div>
     </div>
   );
