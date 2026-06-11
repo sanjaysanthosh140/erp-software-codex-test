@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   Box,
   Card,
@@ -122,29 +122,15 @@ const ProductionActivityLogger = () => {
   });
 
   // Table Data State
-  const [entries, setEntries] = useState([
-    {
-      id: 1,
-      date: "2026-06-17",
-      client: "afaff",
-      category: "Video Production",
-      fromTime: "14:19",
-      toTime: "14:19",
-      timeIn: "16:18",
-      timeOut: "14:18",
-      advance: "23421321",
-      finalAmount: "42142144",
-      additionalRequirements:
-        "dfdsfcsdcds fsadfsfgds fdsfsdfsdgsdf fsdfsddsfdsf",
-      allocatedBy: "ffaff",
-    },
-  ]);
+  const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [editingEntry, setEditingEntry] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
-  const [selectedRequirementDetail, setSelectedRequirementDetail] = useState("");
+  const [selectedRequirementDetail, setSelectedRequirementDetail] =
+    useState("");
 
   const handleOpenDetailDialog = (detail) => {
     setSelectedRequirementDetail(detail || "-");
@@ -190,57 +176,129 @@ const ProductionActivityLogger = () => {
   const handleToggleForm = () => {
     setError(null);
     setEditingId(null);
+    setEditingEntry(null);
     resetForm();
     setShowForm((prev) => !prev);
   };
 
-  const handleSaveEntry = () => {
+  const handleUpdateEntry = async (updatedEntry) => {
+    console.log("handleUpdateEntry", updatedEntry);
+    const nextEntries = entries.map((item) =>
+      item._id === updatedEntry._id || item.id === updatedEntry.id
+        ? updatedEntry
+        : item,
+    );
+
+    setEntries(nextEntries);
+    let id = updatedEntry._id;
+    let res = await axios.put(
+      `http://localhost:8080/admin/production-activitys-edits/${id}`,
+      updatedEntry,
+      {
+        headers: {
+          "Content-type": "application/json",
+          Authorization: localStorage.getItem("adminToken"),
+        },
+      },
+    );
+    setSuccess("Entry updated locally. Backend edit API not called.");
+    setTimeout(() => setSuccess(null), 3000);
+  };
+
+  const handleSaveEntry = async () => {
     const validationError = validateForm(formData);
     if (validationError) {
       setError(validationError);
       return;
     }
 
-    if (editingId) {
-      setEntries((prev) =>
-        prev.map((entry) =>
-          entry.id === editingId ? { ...entry, ...formData, id: editingId } : entry,
-        ),
-      );
-      setSuccess("Entry updated successfully!");
-    } else {
-      const newEntry = {
-        id: Date.now(),
+    if (editingEntry) {
+      const updatedValues = {
+        ...editingEntry,
         ...formData,
       };
-      setEntries((prev) => [newEntry, ...prev]);
-      setSuccess("Entry added successfully!");
+      handleUpdateEntry(updatedValues);
+    } else {
+      const entry = { ...formData };
+      await handleSubmitToBackend([entry], false);
     }
 
-    setTimeout(() => setSuccess(null), 3000);
     setEditingId(null);
+    setEditingEntry(null);
     resetForm();
     setShowForm(false);
   };
 
+  const fetchdata_production = async () => {
+    try {
+      let res = await axios.get(
+        "http://localhost:8080/admin/production_activity",
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: localStorage.getItem("adminToken"),
+          },
+        },
+      );
+      console.log("response", res.data);
+      let data = res.data;
+      setEntries(data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   // Handle Edit Click
   const handleEditClick = (entry) => {
-    setEditingId(entry.id);
+    setEditingId(entry._id ?? entry.id);
+    setEditingEntry(entry);
     setFormData(entry);
+    // console.log("workingin on editing ", entry);
     setError(null);
     setShowForm(true);
   };
 
   // Handle Delete Entry
-  const handleDeleteEntry = (id) => {
-    setEntries((prev) => prev.filter((entry) => entry.id !== id));
-    setSuccess("Entry deleted successfully!");
-    setTimeout(() => setSuccess(null), 3000);
+  const handleDeleteEntry = async (id) => {
+    console.log(id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await axios.delete(
+        `http://localhost:8080/admin/production-activities/${id}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: localStorage.getItem("adminToken"),
+          },
+        },
+      );
+
+      if (res.status === 200) {
+        await fetchdata_production();
+        setSuccess(res.data?.message || "Entry deleted successfully!");
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(
+          res.data?.message || "Failed to delete entry. Please try again.",
+        );
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to delete entry. Please try again.",
+      );
+      console.error("Delete error:", err);
+    }
   };
 
   // Handle Submit All to Backend
-  const handleSubmitToBackend = async () => {
-    if (entries.length === 0) {
+  const handleSubmitToBackend = async (
+    entryList = entries,
+    clearOnSuccess = false,
+  ) => {
+    if (entryList.length === 0) {
       setError("Please add at least one entry before submitting");
       return;
     }
@@ -254,7 +312,7 @@ const ProductionActivityLogger = () => {
         userId,
         department: "production",
         timestamp: new Date().toISOString(),
-        entries: entries.map((entry) => ({
+        entries: entryList.map((entry) => ({
           date: entry.date,
           client: entry.client,
           category: entry.category,
@@ -268,17 +326,29 @@ const ProductionActivityLogger = () => {
           allocatedBy: entry.allocatedBy,
         })),
       };
-
+      if (payload) {
+        console.log("payload", payload);
+      }
       // API call - Replace with your actual backend endpoint
-      const response = await axios.post(
-        "https://project-management-sodtware-backend-end.onrender.com/api/production-activity",
+      let res = await axios.post(
+        "http://localhost:8080/admin/production-activities",
         payload,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: localStorage.getItem("adminToken"),
+          },
+        },
       );
 
       setSuccess(
-        `Successfully submitted ${entries.length} entries to the backend!`,
+        res.data?.message ||
+          `Successfully submitted ${entryList.length} entries to the backend!`,
       );
-      setEntries([]);
+      if (clearOnSuccess) {
+        setEntries([]);
+      }
+      await fetchdata_production();
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       setError(
@@ -291,6 +361,9 @@ const ProductionActivityLogger = () => {
     }
   };
 
+  useEffect(() => {
+    fetchdata_production();
+  }, []);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -408,6 +481,8 @@ const ProductionActivityLogger = () => {
           onClose={() => {
             setShowForm(false);
             setError(null);
+            setEditingEntry(null);
+            setEditingId(null);
           }}
           fullWidth
           maxWidth="md"
@@ -421,7 +496,9 @@ const ProductionActivityLogger = () => {
           }}
         >
           <DialogTitle sx={{ fontWeight: 700, color: "#000000" }}>
-            Add a new activity record
+            {editingEntry
+              ? "Edit activity record"
+              : "Add a new activity record"}
           </DialogTitle>
           <DialogContent
             dividers
@@ -629,7 +706,7 @@ const ProductionActivityLogger = () => {
                 "&:hover": { backgroundColor: "#1d4ed8" },
               }}
             >
-              {editingId ? "Update Entry" : "Add Entry"}
+              {editingEntry ? "Update Entry" : "Add Entry"}
             </Button>
           </DialogActions>
         </Dialog>
@@ -651,8 +728,8 @@ const ProductionActivityLogger = () => {
               sx={{
                 borderCollapse: "collapse",
                 width: "100%",
-                '& td': {
-                  fontSize: '0.95rem',
+                "& td": {
+                  fontSize: "0.95rem",
                 },
               }}
             >
@@ -704,7 +781,7 @@ const ProductionActivityLogger = () => {
                 ) : (
                   entries.map((entry) => (
                     <TableRow
-                      key={entry.id}
+                      key={entry._id ?? entry.id}
                       sx={{
                         "&:nth-of-type(odd)": { backgroundColor: "#f8fafc" },
                       }}
@@ -750,7 +827,7 @@ const ProductionActivityLogger = () => {
                         {entry.fromTime}
                       </TableCell>
                       <TableCell
-                        sx={{
+                        sx={{ 
                           borderBottom: "1px solid #e2e8f0",
                           px: 1,
                           py: 1.25,
@@ -832,7 +909,11 @@ const ProductionActivityLogger = () => {
                           entry.additionalRequirements.length > 30 ? (
                             <Button
                               size="small"
-                              onClick={() => handleOpenDetailDialog(entry.additionalRequirements)}
+                              onClick={() =>
+                                handleOpenDetailDialog(
+                                  entry.additionalRequirements,
+                                )
+                              }
                               sx={{
                                 textTransform: "none",
                                 minWidth: "auto",
@@ -884,7 +965,9 @@ const ProductionActivityLogger = () => {
                           </IconButton>
                           <IconButton
                             size="small"
-                            onClick={() => handleDeleteEntry(entry.id)}
+                            onClick={() =>
+                              handleDeleteEntry(entry._id ?? entry.id)
+                            }
                             sx={{
                               color: "#ef4444",
                               "&:hover": {
@@ -963,7 +1046,6 @@ const ProductionActivityLogger = () => {
           </Card>
         )}
       </Box>
-
     </motion.div>
   );
 };
