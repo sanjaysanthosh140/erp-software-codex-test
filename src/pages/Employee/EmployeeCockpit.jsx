@@ -16,7 +16,9 @@ import ProjectsPreview from "../../components/dashboard/ProjectsPreview";
 import WorkReportForm from "../../components/dashboard/WorkReportForm";
 import TeamChat from "../../components/TeamChat";
 import Employeeeverything from "../../components/Employeeeverything";
+import ProductionActivityLogger from "../admin-side/ProductionActivityLogger";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import LayersIcon from "@mui/icons-material/Layers";
 import CloseIcon from "@mui/icons-material/Close";
 import axios from "axios";
 import { NotificationBell } from "../../components/GlobalNotifications";
@@ -83,6 +85,7 @@ const EmployeeCockpit = () => {
   const [errorMessage, setErrorMessage] = React.useState(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = React.useState(false);
   const [openEverything, setOpenEverything] = React.useState(false);
+  const [openFloor, setOpenFloor] = React.useState(false);
   const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
   const PRIMARY = "#0f172a";
   const SECONDARY = "rgba(15,23,42,0.6)";
@@ -343,30 +346,54 @@ const EmployeeCockpit = () => {
             >
               Here's your workday overview
             </Typography>
-            {/* Everything / Project Hub Trigger */}
-            <Box
-              component="button"
-              onClick={() => setOpenEverything(true)}
-              sx={{
-                mt: 2,
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                px: 2.5,
-                py: 0.8,
-                borderRadius: "10px",
-                border: "none",
-                background: PRIMARY,
-                color: "#fff",
-                fontWeight: 700,
-                fontSize: "0.85rem",
-                cursor: "pointer",
-                transition: "all 0.2s",
-                "&:hover": { opacity: 0.9, transform: "scale(1.02)" },
-              }}
-            >
-              <AssignmentIcon sx={{ fontSize: 16 }} />
-              Everything / Project Hub
+            {/* Everything / Project Hub + Floor triggers */}
+            <Box sx={{ mt: 2, display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+              <Box
+                component="button"
+                onClick={() => setOpenEverything(true)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 2.5,
+                  py: 0.8,
+                  borderRadius: "10px",
+                  border: "none",
+                  background: PRIMARY,
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  "&:hover": { opacity: 0.9, transform: "scale(1.02)" },
+                }}
+              >
+                <AssignmentIcon sx={{ fontSize: 16 }} />
+                Everything / Project Hub
+              </Box>
+              <Box
+                component="button"
+                onClick={() => setOpenFloor(true)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 2.5,
+                  py: 0.8,
+                  borderRadius: "10px",
+                  border: "1px solid rgba(15, 23, 42, 0.12)",
+                  background: "#fff",
+                  color: PRIMARY,
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  "&:hover": { bgcolor: "#f1f5f9", transform: "scale(1.02)" },
+                }}
+              >
+                <LayersIcon sx={{ fontSize: 16 }} />
+                Floor
+              </Box>
             </Box>
           </Box>
 
@@ -595,6 +622,24 @@ const EmployeeCockpit = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Floor / Production Activity Modal */}
+      {openFloor && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 10000,
+            bgcolor: "#fff",
+            overflow: "auto",
+          }}
+        >
+          <ProductionActivityLogger onBack={() => setOpenFloor(false)} />
+        </Box>
+      )}
 
       {/* Everything / Project Hub Modal View */}
       {openEverything && (

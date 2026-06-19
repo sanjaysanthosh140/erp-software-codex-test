@@ -45,6 +45,7 @@ import DepartmentManager from "./components/DepartmentManager";
 import ReportManager from "./components/ReportManager";
 import AttendanceManager from "./components/AttendanceManager";
 import DashboardDialogs from "./components/DashboardDialogs";
+import ProductionActivityLogger from "./ProductionActivityLogger";
 
 // Styles & Constants
 import {
@@ -590,6 +591,22 @@ const fetchEmployees = async () => {
     );
   }
 
+  if (tabValue === 8) {
+    return (
+      <Box
+        sx={{
+          minHeight: "100vh",
+          background: `linear-gradient(135deg, ${PRIMARY_BG} 0%, ${SECONDARY_BG} 100%)`,
+          p: { xs: 2, md: 4 },
+          pb: 8,
+          color: "#0f172a",
+        }}
+      >
+        <ProductionActivityLogger onBack={() => setTabValue(0)} />
+      </Box>
+    );
+  }
+
   return (
     <>
       <Box
@@ -697,6 +714,7 @@ const fetchEmployees = async () => {
               <Tab label="Heads" />
               <Tab label="Head Tasks" />
               <Tab label="DM Projects" />
+              <Tab label="Floor" />
             </Tabs>
           </Box>
 

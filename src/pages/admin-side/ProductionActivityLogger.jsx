@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
   Card,
@@ -24,6 +24,7 @@ import {
   DialogActions,
   useTheme,
   useMediaQuery,
+  TableSortLabel,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -35,7 +36,7 @@ import { useNavigate } from "react-router-dom";
 const glassEffect = {
   background: "rgba(255, 255, 255, 1)",
   backdropFilter: "blur(25px) saturate(160%)",
-  border: "1px solid rgba(255, 255, 255, 0.7)",
+  border: "1px solid rgb(255, 255, 255)",
   borderRadius: "28px",
   boxShadow:
     "0 15px 45px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 1)",
@@ -98,7 +99,10 @@ const inputFieldStyles = {
   },
 };
 
-const ProductionActivityLogger = () => {
+const getAuthToken = () =>
+  localStorage.getItem("adminToken") || localStorage.getItem("token");
+
+const ProductionActivityLogger = ({ onBack }) => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -111,6 +115,7 @@ const ProductionActivityLogger = () => {
     date: "",
     client: "",
     category: "Floor",
+    floorName: "",
     fromTime: "",
     toTime: "",
     timeIn: "",
@@ -131,6 +136,35 @@ const ProductionActivityLogger = () => {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedRequirementDetail, setSelectedRequirementDetail] =
     useState("");
+  const [refetchKey, setRefetchKey] = useState(0);
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [filterDate, setFilterDate] = useState("");
+
+  const triggerRefetch = () => setRefetchKey((prev) => prev + 1);
+
+  // Filter and sort entries by date
+  const sortedEntries = useMemo(() => {
+    let result = [...entries];
+
+    if (filterDate) {
+      result = result.filter((entry) => entry.date === filterDate);
+    }
+
+    return result.sort((a, b) => {
+      if (!a.date && !b.date) return 0;
+      if (!a.date) return 1;
+      if (!b.date) return -1;
+      
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      
+      if (isNaN(dateA) && isNaN(dateB)) return 0;
+      if (isNaN(dateA)) return 1;
+      if (isNaN(dateB)) return -1;
+      
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
+    });
+  }, [entries, filterDate, sortOrder]);
 
   const handleOpenDetailDialog = (detail) => {
     setSelectedRequirementDetail(detail || "-");
@@ -153,6 +187,7 @@ const ProductionActivityLogger = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+      ...(name === "category" && value !== "Floor" ? { floorName: "" } : {}),
     }));
     setError(null);
   };
@@ -162,6 +197,7 @@ const ProductionActivityLogger = () => {
       date: "",
       client: "",
       category: "Floor",
+      floorName: "",
       fromTime: "",
       toTime: "",
       timeIn: "",
@@ -181,28 +217,54 @@ const ProductionActivityLogger = () => {
     setShowForm((prev) => !prev);
   };
 
-  const handleUpdateEntry = async (updatedEntry) => {
-    console.log("handleUpdateEntry", updatedEntry);
-    const nextEntries = entries.map((item) =>
-      item._id === updatedEntry._id || item.id === updatedEntry.id
-        ? updatedEntry
-        : item,
-    );
+  const buildUpdatePayload = (entry) => ({
+    department: entry.department || "production",
+    timestamp: entry.timestamp || new Date().toISOString(),
+    date: entry.date || "",
+    client: entry.client || "",
+    category: entry.category || "Floor",
+    floorName: entry.category === "Floor" ? entry.floorName || "" : "",
+    fromTime: entry.fromTime || "",
+    toTime: entry.toTime || "",
+    timeIn: entry.timeIn || "",
+    timeOut: entry.timeOut || "",
+    advance: entry.advance ?? "",
+    finalAmount: entry.finalAmount ?? "",
+    additionalRequirements: entry.additionalRequirements || "",
+    allocatedBy: entry.allocatedBy || "",
+  });
 
-    setEntries(nextEntries);
-    let id = updatedEntry._id;
-    let res = await axios.put(
-      `http://localhost:8080/admin/production-activitys-edits/${id}`,
-      updatedEntry,
-      {
-        headers: {
-          "Content-type": "application/json",
-          Authorization: localStorage.getItem("adminToken"),
+  const handleUpdateEntry = async (updatedEntry) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const id = updatedEntry._id ?? updatedEntry.id;
+      const res = await axios.put(
+        `https://project-management-sodtware-backend-end.onrender.com/admin/production-activitys-edits/${id}`,
+        buildUpdatePayload(updatedEntry),
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: getAuthToken(),
+          },
         },
-      },
-    );
-    setSuccess("Entry updated locally. Backend edit API not called.");
-    setTimeout(() => setSuccess(null), 3000);
+      );
+
+      triggerRefetch();
+      setSuccess(res.data?.message || "Entry updated successfully!");
+      setTimeout(() => setSuccess(null), 3000);
+      return true;
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to update entry. Please try again.",
+      );
+      console.error("Update error:", err);
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSaveEntry = async () => {
@@ -212,16 +274,19 @@ const ProductionActivityLogger = () => {
       return;
     }
 
+    let saved = false;
+
     if (editingEntry) {
       const updatedValues = {
         ...editingEntry,
         ...formData,
       };
-      handleUpdateEntry(updatedValues);
+      saved = await handleUpdateEntry(updatedValues);
     } else {
-      const entry = { ...formData };
-      await handleSubmitToBackend([entry], false);
+      saved = await handleSubmitToBackend([{ ...formData }], false);
     }
+
+    if (!saved) return;
 
     setEditingId(null);
     setEditingEntry(null);
@@ -229,55 +294,75 @@ const ProductionActivityLogger = () => {
     setShowForm(false);
   };
 
-  const fetchdata_production = async () => {
+  const fetchdata_production = useCallback(async () => {
     try {
-      let res = await axios.get(
-        "http://localhost:8080/admin/production_activity",
+      const res = await axios.get(
+        "https://project-management-sodtware-backend-end.onrender.com/admin/production_activity",
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: localStorage.getItem("adminToken"),
+            Authorization: getAuthToken(),
           },
         },
       );
-      console.log("response", res.data);
-      let data = res.data;
+      const data = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
       setEntries(data);
-    } catch (error) {
-      console.log(error);
+      return data;
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Failed to load production activities. Please try again.",
+      );
+      console.error("Fetch error:", err);
+      return null;
     }
-  };
+  }, []);
 
-  // Handle Edit Click
   const handleEditClick = (entry) => {
     setEditingId(entry._id ?? entry.id);
     setEditingEntry(entry);
-    setFormData(entry);
-    // console.log("workingin on editing ", entry);
+    setFormData({
+      date: entry.date || "",
+      client: entry.client || "",
+      category: entry.category || "Floor",
+      floorName: entry.floorName || "",
+      fromTime: entry.fromTime || "",
+      toTime: entry.toTime || "",
+      timeIn: entry.timeIn || "",
+      timeOut: entry.timeOut || "",
+      advance: entry.advance ?? "",
+      finalAmount: entry.finalAmount ?? "",
+      additionalRequirements: entry.additionalRequirements || "",
+      allocatedBy: entry.allocatedBy || "",
+    });
     setError(null);
     setShowForm(true);
   };
 
   // Handle Delete Entry
   const handleDeleteEntry = async (id) => {
-    console.log(id);
     setError(null);
     setSuccess(null);
+    setLoading(true);
 
     try {
       const res = await axios.delete(
-        `http://localhost:8080/admin/production-activities/${id}`,
+        `https://project-management-sodtware-backend-end.onrender.com/admin/production-activities/${id}`,
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: localStorage.getItem("adminToken"),
+            Authorization: getAuthToken(),
           },
         },
       );
 
       if (res.status === 200) {
-        await fetchdata_production();
-        setSuccess(res.data?.message || "Entry deleted successfully!");
+        triggerRefetch();
+        setSuccess(
+          typeof res.data === "string"
+            ? res.data
+            : res.data?.message || "Entry deleted successfully!",
+        );
         setTimeout(() => setSuccess(null), 3000);
       } else {
         setError(
@@ -290,17 +375,18 @@ const ProductionActivityLogger = () => {
           "Failed to delete entry. Please try again.",
       );
       console.error("Delete error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle Submit All to Backend
   const handleSubmitToBackend = async (
     entryList = entries,
     clearOnSuccess = false,
   ) => {
     if (entryList.length === 0) {
       setError("Please add at least one entry before submitting");
-      return;
+      return false;
     }
 
     setLoading(true);
@@ -316,30 +402,32 @@ const ProductionActivityLogger = () => {
           date: entry.date,
           client: entry.client,
           category: entry.category,
+          ...(entry.category === "Floor"
+            ? { floorName: entry.floorName || "" }
+            : {}),
           fromTime: entry.fromTime,
           toTime: entry.toTime,
           timeIn: entry.timeIn,
           timeOut: entry.timeOut,
-          advance: parseFloat(entry.advance),
-          finalAmount: parseFloat(entry.finalAmount),
+          advance: entry.advance ?? "",
+          finalAmount: entry.finalAmount ?? "",
           additionalRequirements: entry.additionalRequirements,
           allocatedBy: entry.allocatedBy,
         })),
       };
-      if (payload) {
-        console.log("payload", payload);
-      }
-      // API call - Replace with your actual backend endpoint
-      let res = await axios.post(
-        "http://localhost:8080/admin/production-activities",
+
+      const res = await axios.post(
+        "https://project-management-sodtware-backend-end.onrender.com/admin/production-activities",
         payload,
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: localStorage.getItem("adminToken"),
+            Authorization: getAuthToken(),
           },
         },
       );
+
+      triggerRefetch();
 
       setSuccess(
         res.data?.message ||
@@ -348,14 +436,15 @@ const ProductionActivityLogger = () => {
       if (clearOnSuccess) {
         setEntries([]);
       }
-      await fetchdata_production();
       setTimeout(() => setSuccess(null), 3000);
+      return true;
     } catch (err) {
       setError(
         err.response?.data?.message ||
           "Failed to submit entries. Please try again.",
       );
       console.error("Submission error:", err);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -363,7 +452,7 @@ const ProductionActivityLogger = () => {
 
   useEffect(() => {
     fetchdata_production();
-  }, []);
+  }, [fetchdata_production, refetchKey]);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -436,11 +525,71 @@ const ProductionActivityLogger = () => {
               below.
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
+            <TextField
+              select
+              size="small"
+              label="Sort by Date"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              sx={{
+                ...inputFieldStyles,
+                minWidth: 160,
+                "& .MuiOutlinedInput-root": {
+                  ...inputFieldStyles["& .MuiOutlinedInput-root"],
+                  borderRadius: "999px",
+                  backgroundColor: "#fff",
+                },
+              }}
+            >
+              <MenuItem value="desc">Newest First</MenuItem>
+              <MenuItem value="asc">Oldest First</MenuItem>
+            </TextField>
+            <TextField
+              type="date"
+              size="small"
+              label="Filter by Date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{
+                ...inputFieldStyles,
+                minWidth: 160,
+                "& .MuiOutlinedInput-root": {
+                  ...inputFieldStyles["& .MuiOutlinedInput-root"],
+                  borderRadius: "999px",
+                  backgroundColor: "#fff",
+                },
+              }}
+            />
+            {filterDate && (
+              <Button
+                variant="outlined"
+                onClick={() => setFilterDate("")}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: "999px",
+                  borderColor: "#ef4444",
+                  color: "#ef4444",
+                  px: 2.5,
+                  py: 0.75,
+                  "&:hover": {
+                    borderColor: "#dc2626",
+                    backgroundColor: "rgba(239, 68, 68, 0.08)",
+                  },
+                }}
+              >
+                Clear Filter
+              </Button>
+            )}
             <Button
               variant="outlined"
               onClick={() => {
-                window.location.href = "/head";
+                if (onBack) {
+                  onBack();
+                } else {
+                  navigate("/head");
+                }
               }}
               sx={{
                 textTransform: "none",
@@ -495,7 +644,7 @@ const ProductionActivityLogger = () => {
             },
           }}
         >
-          <DialogTitle sx={{ fontWeight: 700, color: "#000000" }}>
+          <DialogTitle sx={{ fontWeight: 700, color: "#0000" }}>
             {editingEntry
               ? "Edit activity record"
               : "Add a new activity record"}
@@ -559,6 +708,20 @@ const ProductionActivityLogger = () => {
                   <MenuItem value="Video Production">Video Production</MenuItem>
                 </TextField>
               </Grid>
+              {formData.category === "Floor" && (
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Floor Name"
+                    name="floorName"
+                    value={formData.floorName}
+                    onChange={handleInputChange}
+                    placeholder="e.g. Ground Floor, 1st Floor"
+                    sx={inputFieldStyles}
+                    size="small"
+                  />
+                </Grid>
+              )}
               <Grid item xs={12} sm={4} md={3}>
                 <TextField
                   fullWidth
@@ -682,7 +845,7 @@ const ProductionActivityLogger = () => {
                 textTransform: "none",
                 borderRadius: "12px",
                 borderColor: "#cbd5e1",
-                color: "#374151",
+                color: "#ffff",
                 px: 2,
                 py: 0.5,
                 minWidth: 96,
@@ -694,6 +857,7 @@ const ProductionActivityLogger = () => {
             <Button
               variant="contained"
               onClick={handleSaveEntry}
+              disabled={loading}
               sx={{
                 textTransform: "none",
                 borderRadius: "12px",
@@ -706,7 +870,13 @@ const ProductionActivityLogger = () => {
                 "&:hover": { backgroundColor: "#1d4ed8" },
               }}
             >
-              {editingEntry ? "Update Entry" : "Add Entry"}
+              {loading
+                ? editingEntry
+                  ? "Updating..."
+                  : "Adding..."
+                : editingEntry
+                  ? "Update Entry"
+                  : "Add Entry"}
             </Button>
           </DialogActions>
         </Dialog>
@@ -716,16 +886,18 @@ const ProductionActivityLogger = () => {
           sx={{
             border: "1px solid #cbd5e1",
             borderRadius: 2,
-            overflow: "auto",
+            overflow: "hidden",
             mb: 4,
             backgroundColor: "#fff",
             px: 0,
           }}
         >
-          <TableContainer sx={{ minWidth: 1020, width: "100%" }}>
+          <TableContainer sx={{ width: "100%", maxHeight: "60vh", overflow: "auto" }}>
             <Table
               size="small"
+              stickyHeader
               sx={{
+                minWidth: 1020,
                 borderCollapse: "collapse",
                 width: "100%",
                 "& td": {
@@ -739,6 +911,7 @@ const ProductionActivityLogger = () => {
                     "Date",
                     "Client",
                     "Category",
+                    "Floor Name",
                     "From",
                     "To",
                     "Time In",
@@ -754,9 +927,11 @@ const ProductionActivityLogger = () => {
                       sx={{
                         fontWeight: 700,
                         color: "#334155",
+                        backgroundColor: "#f8fafc",
                         borderBottom: "1px solid #e2e8f0",
                         py: 1.5,
                         px: 1,
+                        cursor: label === "Date" ? "pointer" : "default",
                         textAlign:
                           label === "Advance" ||
                           label === "Final Amount" ||
@@ -765,21 +940,37 @@ const ProductionActivityLogger = () => {
                             : "left",
                       }}
                     >
-                      {label}
+                      {label === "Date" ? (
+                        <TableSortLabel
+                          active={true}
+                          direction={sortOrder}
+                          onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
+                          sx={{
+                            color: "#334155 !important",
+                            "& .MuiTableSortLabel-icon": {
+                              color: "#334155 !important",
+                            },
+                          }}
+                        >
+                          {label}
+                        </TableSortLabel>
+                      ) : (
+                        label
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
               </TableHead>
               <TableBody>
-                {entries.length === 0 ? (
+                {sortedEntries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} sx={{ p: 4, color: "#64748b" }}>
+                    <TableCell colSpan={13} sx={{ p: 4, color: "#64748b" }}>
                       No activity entries yet. Click Add + to create the first
                       record.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  entries.map((entry) => (
+                  sortedEntries.map((entry) => (
                     <TableRow
                       key={entry._id ?? entry.id}
                       sx={{
@@ -815,6 +1006,18 @@ const ProductionActivityLogger = () => {
                         }}
                       >
                         {entry.category}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          borderBottom: "1px solid #e2e8f0",
+                          px: 1,
+                          py: 1.25,
+                          color: "#000000",
+                        }}
+                      >
+                        {entry.category === "Floor"
+                          ? entry.floorName || "-"
+                          : "-"}
                       </TableCell>
                       <TableCell
                         sx={{
@@ -965,6 +1168,7 @@ const ProductionActivityLogger = () => {
                           </IconButton>
                           <IconButton
                             size="small"
+                            disabled={loading}
                             onClick={() =>
                               handleDeleteEntry(entry._id ?? entry.id)
                             }
@@ -1028,7 +1232,7 @@ const ProductionActivityLogger = () => {
         </Dialog>
 
         {/* Empty State */}
-        {entries.length === 0 && (
+        {sortedEntries.length === 0 && (
           <Card
             sx={{
               ...glassEffect,

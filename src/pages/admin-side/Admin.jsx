@@ -1,6 +1,7 @@
 import axios from "axios";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ProductionActivityLogger from "./ProductionActivityLogger";
 import "./AdminDashboard.css";
 
 const API_BASE_URL =
@@ -93,26 +94,13 @@ const HEAD_TASK_PARTITION_STYLES = {
 
 function Admin() {
   const navigate = useNavigate();
-  function check_ceo_routes() {
-    try {
-      console.log("done");
-      axios.get("http://localhost:8080/ceo/ceo_checkning", {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: localStorage.getItem("adminToken"),
-        },
-      });
-    } catch (error) {
-      console.log(error);
-    }
-  }
+
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     const role = localStorage.getItem("adminRole") || "";
     if (!token || role.toLowerCase() !== "ceo") {
       navigate("/admin");
     }
-    check_ceo_routes();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -567,6 +555,18 @@ function Admin() {
       0,
     ) || 0;
 
+  if (activeWorkSection === "floor") {
+    return (
+      <div id="admin-emp-dash" className="adm-page-bg">
+        <div className="adm-shell">
+          <ProductionActivityLogger
+            onBack={() => setActiveWorkSection("tasks")}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div id="admin-emp-dash" className="adm-page-bg">
       <div className="adm-shell">
@@ -623,6 +623,15 @@ function Admin() {
             onClick={() => setActiveWorkSection("department")}
           >
             Department Task Allocation
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeWorkSection === "floor"}
+            className={`adm-section-tab ${activeWorkSection === "floor" ? "adm-section-tab--active" : ""}`}
+            onClick={() => setActiveWorkSection("floor")}
+          >
+            Floor
           </button>
         </div>
 
