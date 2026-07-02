@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -52,13 +52,14 @@ const mapDeptName = (name) => {
   return null;
 };
 
-export default function CustomProjectsList() {
+export default function CustomProjectsList({ onSelectProject, onBack }) {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isAddMode, setIsAddMode] = useState(false);
   const [edit_id, setedit_id] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // New Project Form State
   const [newProjectTitle, setNewProjectTitle] = useState("");
@@ -132,7 +133,7 @@ export default function CustomProjectsList() {
     }
   };
 
-  const fetchProjects = async () => {
+  const fetchProjects = useCallback(async () => {
     try {
       setLoading(true);
       const res = await axios.get(
@@ -147,9 +148,9 @@ export default function CustomProjectsList() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
-  const fetchDepartments = async () => {
+  const fetchDepartments = useCallback(async () => {
     try {
       const res = await axios.get(`${BASE_URL}/admin/get_admins`, {
         headers: { Authorization: token },
@@ -180,7 +181,7 @@ export default function CustomProjectsList() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (!token) {
@@ -189,7 +190,7 @@ export default function CustomProjectsList() {
     }
     fetchProjects();
     fetchDepartments();
-  }, [token, navigate]);
+  }, [token, navigate, fetchProjects, fetchDepartments]);
 
   const handleToggleDept = (dept) => {
     setSelectedDepts((prev) => {
@@ -258,6 +259,12 @@ export default function CustomProjectsList() {
     }
   };
 
+  const filteredProjects = projects.filter((p) => {
+    if (!searchQuery) return true;
+    const title = p.projectTilte || p.projectTitle || "";
+    return title.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
   return (
     <Box
       sx={{ minHeight: "100vh", bgcolor: PAGE_BG, color: TEXT_DARK, pb: 10 }}
@@ -275,7 +282,7 @@ export default function CustomProjectsList() {
         }}
       >
         <IconButton
-          onClick={() => navigate("/head")}
+          onClick={() => onBack ? onBack() : navigate("/head")}
           sx={{ color: TEXT_DARK, bgcolor: alpha(TEXT_DARK, 0.05) }}
         >
           <ArrowBackIcon />
@@ -436,7 +443,26 @@ export default function CustomProjectsList() {
             </Button>
           </Paper>
         ) : (
-          <TableContainer
+          <Box>
+            <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <TextField
+                placeholder="Search projects..."
+                variant="outlined"
+                size="small"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{
+                  width: { xs: "100%", sm: "300px" },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "8px",
+                    bgcolor: "#fff",
+                    "& fieldset": { borderColor: BORDER },
+                    "& input": { color: TEXT_DARK },
+                  },
+                }}
+              />
+            </Box>
+            <TableContainer
             component={Paper}
             elevation={0}
             sx={{
@@ -495,192 +521,17 @@ export default function CustomProjectsList() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {projects.map((proj) => (
-                  <TableRow
-                    key={proj._id}
-                    onClick={() =>
-                      navigate(`/head/custom-projects/${proj._id}`)
-                    }
-                    sx={{
-                      cursor: "pointer",
-                      "&:last-child td, &:last-child th": { border: 0 },
-                      "&:hover": { bgcolor: alpha(TEXT_DARK, 0.02) },
-                      transition: "background-color 0.2s",
-                    }}
-                  >
+                {loading && filteredProjects.length === 0 ? (
+                  <TableRow>
                     <TableCell
-                      sx={{
-                        fontWeight: 700,
-                        color: TEXT_DARK,
-                        borderBottom: `1px solid ${BORDER}`,
-                      }}
+                      colSpan={REQUIRED_DEPTS.length + 3}
+                      align="center"
+                      sx={{ py: 6, color: TEXT_MUTED }}
                     >
-                      <Typography sx={{ fontWeight: 800 }}>
-                        {proj.projectTilte ||
-                          proj.projectTitle ||
-                          "Unnamed Project"}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: TEXT_MUTED }}>
-                        Created:{" "}
-                        {new Date(
-                          proj.createdAt || Date.now(),
-                        ).toLocaleDateString()}
-                      </Typography>
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        borderBottom: `1px solid ${BORDER}`,
-                        width: "220px",
-                      }}
-                    >
-                      {(() => {
-                        const totalSlots =
-                          (proj.tasks?.length || 0) *
-                          (proj.departments?.length || 0);
-                        let completedSlots = 0;
-                        if (totalSlots > 0) {
-                          proj.tasks.forEach((t) =>
-                            t.departments?.forEach((d) => {
-                              if (d.status === "completed") completedSlots++;
-                            }),
-                          );
-                        }
-                        const prog =
-                          totalSlots > 0
-                            ? Math.round((completedSlots / totalSlots) * 100)
-                            : 0;
-                        return (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1.5,
-                            }}
-                          >
-                            <LinearProgress
-                              variant="determinate"
-                              value={prog}
-                              sx={{
-                                flex: 1,
-                                height: 8,
-                                borderRadius: 4,
-                                bgcolor: alpha(ACCENT, 0.1),
-                                "& .MuiLinearProgress-bar": {
-                                  bgcolor: ACCENT,
-                                  borderRadius: 4,
-                                },
-                              }}
-                            />
-                            <Typography
-                              variant="caption"
-                              sx={{ fontWeight: 800, color: TEXT_DARK }}
-                            >
-                              {prog}%
-                            </Typography>
-                          </Box>
-                        );
-                      })()}
-                    </TableCell>
-                    {REQUIRED_DEPTS.map((deptName) => {
-                      const deptInfo = proj.departments.find(
-                        (d) =>
-                          mapDeptName(d.departmentName) === deptName ||
-                          d.departmentName === deptName,
-                      );
-                      if (!deptInfo)
-                        return (
-                          <TableCell
-                            key={deptName}
-                            align="center"
-                            sx={{
-                              color: alpha(TEXT_DARK, 0.2),
-                              borderBottom: `1px solid ${BORDER}`,
-                            }}
-                          >
-                            —
-                          </TableCell>
-                        );
-
-                      return (
-                        <TableCell
-                          key={deptName}
-                          align="center"
-                          sx={{ borderBottom: `1px solid ${BORDER}` }}
-                        >
-                          <Chip
-                            label="Included"
-                            size="small"
-                            sx={{
-                              fontWeight: 700,
-                              fontSize: "0.7rem",
-                              bgcolor: alpha(ACCENT, 0.1),
-                              color: ACCENT,
-                              border: `1px solid ${alpha(ACCENT, 0.2)}`,
-                            }}
-                          />
-                        </TableCell>
-                      );
-                    })}
-                    <TableCell
-                      align="right"
-                      sx={{
-                        borderBottom: `1px solid ${BORDER}`,
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {isDepartmentEmployee && (
-                        <Button
-                          size="small"
-                          variant="contained"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle OK/Approve action for department employees
-                            console.log("Project approved by department employee:", proj._id);
-                          }}
-                          sx={{
-                            bgcolor: "#22c55e",
-                            color: "#fff",
-                            mr: 1,
-                            fontSize: "0.75rem",
-                            "&:hover": { bgcolor: "#16a34a" },
-                          }}
-                        >
-                          OK
-                        </Button>
-                      )}
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditProject(proj);
-                        }}
-                        sx={{
-                          color: ACCENT,
-                          mr: 1,
-                          bgcolor: alpha(ACCENT, 0.05),
-                          "&:hover": { bgcolor: alpha(ACCENT, 0.1) },
-                        }}
-                      >
-                        <EditIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteProject(proj._id);
-                        }}
-                        sx={{
-                          color: "#ef4444",
-                          bgcolor: alpha("#ef4444", 0.05),
-                          "&:hover": { bgcolor: alpha("#ef4444", 0.1) },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      Loading projects...
                     </TableCell>
                   </TableRow>
-                ))}
-                {projects.length === 0 && !loading && (
+                ) : filteredProjects.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={REQUIRED_DEPTS.length + 3}
@@ -690,10 +541,198 @@ export default function CustomProjectsList() {
                       No custom projects created yet.
                     </TableCell>
                   </TableRow>
+                ) : (
+                  filteredProjects.map((proj) => (
+                    <TableRow
+                      key={proj._id}
+                      onClick={() =>
+                        onSelectProject
+                          ? onSelectProject(proj._id)
+                          : navigate(`/head/custom-projects/${proj._id}`)
+                      }
+                      sx={{
+                        cursor: "pointer",
+                        "&:last-child td, &:last-child th": { border: 0 },
+                        "&:hover": { bgcolor: alpha(TEXT_DARK, 0.02) },
+                        transition: "background-color 0.2s",
+                      }}
+                    >
+                      <TableCell
+                        sx={{
+                          fontWeight: 700,
+                          color: TEXT_DARK,
+                          borderBottom: `1px solid ${BORDER}`,
+                        }}
+                      >
+                        <Typography sx={{ fontWeight: 800 }}>
+                          {proj.projectTilte ||
+                            proj.projectTitle ||
+                            "Unnamed Project"}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: TEXT_MUTED }}>
+                          Created:{" "}
+                          {new Date(
+                            proj.createdAt || Date.now(),
+                          ).toLocaleDateString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          borderBottom: `1px solid ${BORDER}`,
+                          width: "220px",
+                        }}
+                      >
+                        {(() => {
+                          const totalSlots =
+                            (proj.tasks?.length || 0) *
+                            (proj.departments?.length || 0);
+                          let completedSlots = 0;
+                          if (totalSlots > 0) {
+                            proj.tasks.forEach((t) =>
+                              t.departments?.forEach((d) => {
+                                if (d.status === "completed") completedSlots++;
+                              }),
+                            );
+                          }
+                          const prog =
+                            totalSlots > 0
+                              ? Math.round((completedSlots / totalSlots) * 100)
+                              : 0;
+                          return (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1.5,
+                              }}
+                            >
+                              <LinearProgress
+                                variant="determinate"
+                                value={prog}
+                                sx={{
+                                  flex: 1,
+                                  height: 8,
+                                  borderRadius: 4,
+                                  bgcolor: alpha(ACCENT, 0.1),
+                                  "& .MuiLinearProgress-bar": {
+                                    bgcolor: ACCENT,
+                                    borderRadius: 4,
+                                  },
+                                }}
+                              />
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 800, color: TEXT_DARK }}
+                              >
+                                {prog}%
+                              </Typography>
+                            </Box>
+                          );
+                        })()}
+                      </TableCell>
+                      {REQUIRED_DEPTS.map((deptName) => {
+                        const deptInfo = proj.departments.find(
+                          (d) =>
+                            mapDeptName(d.departmentName) === deptName ||
+                            d.departmentName === deptName,
+                        );
+                        if (!deptInfo)
+                          return (
+                            <TableCell
+                              key={deptName}
+                              align="center"
+                              sx={{
+                                color: alpha(TEXT_DARK, 0.2),
+                                borderBottom: `1px solid ${BORDER}`,
+                              }}
+                            >
+                              —
+                            </TableCell>
+                          );
+
+                        return (
+                          <TableCell
+                            key={deptName}
+                            align="center"
+                            sx={{ borderBottom: `1px solid ${BORDER}` }}
+                          >
+                            <Chip
+                              label="Included"
+                              size="small"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: "0.7rem",
+                                bgcolor: alpha(ACCENT, 0.1),
+                                color: ACCENT,
+                                border: `1px solid ${alpha(ACCENT, 0.2)}`,
+                              }}
+                            />
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell
+                        align="right"
+                        sx={{
+                          borderBottom: `1px solid ${BORDER}`,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {isDepartmentEmployee && (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log("Project approved by department employee:", proj._id);
+                            }}
+                            sx={{
+                              bgcolor: "#22c55e",
+                              color: "#fff",
+                              mr: 1,
+                              fontSize: "0.75rem",
+                              "&:hover": { bgcolor: "#16a34a" },
+                            }}
+                          >
+                            OK
+                          </Button>
+                        )}
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProject(proj);
+                          }}
+                          sx={{
+                            color: ACCENT,
+                            mr: 1,
+                            bgcolor: alpha(ACCENT, 0.05),
+                            "&:hover": { bgcolor: alpha(ACCENT, 0.1) },
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProject(proj._id);
+                          }}
+                          sx={{
+                            color: "#ef4444",
+                            bgcolor: alpha("#ef4444", 0.05),
+                            "&:hover": { bgcolor: alpha("#ef4444", 0.1) },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
           </TableContainer>
+          </Box>
         )}
       </Box>
     </Box>

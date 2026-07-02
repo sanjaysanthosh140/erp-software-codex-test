@@ -27,6 +27,8 @@ import axios from "axios";
 const HeadBillings = () => {
   const BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
   const navigate = useNavigate();
+  const adminRole = (localStorage.getItem("adminRole") || "").toLowerCase().trim();
+  const [adminProfile, setAdminProfile] = useState(null);
   const [billingEntries, setBillingEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -38,7 +40,33 @@ const HeadBillings = () => {
     status: "",
   });
 
-  const statusOptions = ["completed"];
+  const getTokenPayload = () => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) return {};
+      const payload = token.split(".")[1];
+      if (!payload) return {};
+      return JSON.parse(atob(payload));
+    } catch (error) {
+      return {};
+    }
+  };
+
+  const tokenPayload = getTokenPayload();
+  const headDepartment = (
+    adminProfile?.department ||
+    adminProfile?.dept ||
+    adminProfile?.departmentName ||
+    tokenPayload.department ||
+    tokenPayload.dept ||
+    tokenPayload.departmentName ||
+    ""
+  )
+    .toLowerCase()
+    .trim();
+  const isAccountsHead =
+    adminRole === "head" && /account|accounts|accountant|finance/.test(headDepartment);
+  const statusOptions = ["pending", "completed"];
 
   const handleEditEntry = (entry) => {
     setSelectedEntry(entry);
@@ -49,25 +77,6 @@ const HeadBillings = () => {
       status: entry.status || "",
     });
     setEditDialogOpen(true);
-  };
-
-  const handleDeleteEntry = async (entry) => {
-    console.log("Delete billing entry", entry);
-    const id = entry._id || entry.projectId;
-
-    try {
-      const response = await axios.delete(
-        `${BASE_URL}/admin/remove_account_data/${id}`,
-      );
-      console.log(response);
-      setBillingEntries((prevEntries) =>
-        prevEntries.filter(
-          (item) => item._id !== id && item.projectId !== id,
-        ),
-      );
-    } catch (error) {
-      console.log(error);
-    }
   };
 
   const handleEditFormChange = (field) => (event) => {
@@ -82,27 +91,74 @@ const HeadBillings = () => {
     setSelectedEntry(null);
   };
 
-  const handleSaveEdit = () => {
-    console.log("Save edited billing entry", selectedEntry, editForm);
+  const handleDeleteEntry = async (entry) => {
+    if (!window.confirm("Are you sure you want to delete this billing entry?")) {
+      return;
+    }
+    try {
+      const pro_id = entry._id;
+      await axios.delete(`${BASE_URL}/admin/remove_account_data/${pro_id}`);
+      setBillingEntries((prevEntries) =>
+        prevEntries.filter((item) => item._id !== pro_id)
+      );
+    } catch (error) {
+      console.error("Error deleting billing entry:", error);
+      alert("Failed to delete billing entry");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedEntry) return;
+    const updatedForm = {
+      projectName: editForm.projectName,
+      description: editForm.description,
+      department: editForm.department,
+      status: editForm.status || "pending",
+    };
+
     setBillingEntries((prevEntries) =>
       prevEntries.map((item) =>
         item._id === selectedEntry?._id ||
         item.projectId === selectedEntry?.projectId
-          ? { ...item, ...editForm }
+          ? { ...item, ...updatedForm }
           : item,
       ),
     );
     setEditDialogOpen(false);
     setSelectedEntry(null);
+
     let pro_id = selectedEntry._id;
-    axios.put(
-      `${BASE_URL}/admin/update_account_billings_data/${pro_id}`,
-      editForm,
-    );
-    // TODO: replace this with API request to persist the edited billing entry
+    try {
+      await axios.put(
+        `${BASE_URL}/admin/update_account_billings_data/${pro_id}`,
+        updatedForm,
+      );
+    } catch (error) {
+      console.error("Error updating billing entry:", error);
+    }
   };
 
   useEffect(() => {
+    const token = localStorage.getItem("adminToken");
+    if (!token || adminRole !== "head") {
+      navigate("/admin");
+      return;
+    }
+
+    const fetchAdminProfile = async () => {
+      try {
+        const response = await axios.get(`${BASE_URL}/admin/admin_profile`, {
+          headers: { Authorization: token },
+        });
+        const profile = Array.isArray(response.data)
+          ? response.data[0]
+          : response.data;
+        setAdminProfile(profile);
+      } catch (error) {
+        console.error("Error loading admin profile:", error);
+      }
+    };
+
     const fetchBillingEntries = async () => {
       try {
         const response = await axios.get(`${BASE_URL}/admin/billings`);
@@ -118,8 +174,9 @@ const HeadBillings = () => {
       }
     };
 
+    fetchAdminProfile();
     fetchBillingEntries();
-  }, []);
+  }, [adminRole, navigate]);
 
   return (
     <Box
@@ -149,6 +206,9 @@ const HeadBillings = () => {
           </Typography>
           <Typography sx={{ color: "#475569", fontSize: "1rem" }}>
             Review billing entries created from the Add to Accounts flow.
+            {isAccountsHead
+              ? " Only Accounts Head can mark payment as completed."
+              : " Status updates are allowed only for the Accounts Head."}
           </Typography>
         </Box>
 
@@ -316,7 +376,7 @@ const HeadBillings = () => {
                               px: 1,
                             }}
                           />
-                          <Tooltip title="Edit billing entry">
+                          <Tooltip title="Update billing entry">
                             <IconButton
                               size="small"
                               color="primary"
@@ -413,7 +473,7 @@ const HeadBillings = () => {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Edit Billing Entry</DialogTitle>
+        <DialogTitle>Update Billing Entry</DialogTitle>
         <DialogContent>
           <Box component="form" sx={{ display: "grid", gap: 2, pt: 1 }}>
             <TextField
@@ -442,6 +502,12 @@ const HeadBillings = () => {
               value={editForm.status}
               onChange={handleEditFormChange("status")}
               fullWidth
+              disabled={!isAccountsHead}
+              helperText={
+                isAccountsHead
+                  ? "Keep it pending until payment is done."
+                  : "Only Accounts Head can change status."
+              }
             >
               {statusOptions.map((status) => (
                 <MenuItem key={status} value={status}>

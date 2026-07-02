@@ -369,7 +369,7 @@ const EmployeeCockpit = () => {
                 }}
               >
                 <AssignmentIcon sx={{ fontSize: 16 }} />
-                Everything / Project Hub
+               calendar
               </Box>
               <Box
                 component="button"

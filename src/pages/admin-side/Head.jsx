@@ -98,6 +98,7 @@ const Head = () => {
     if (!token || role.toLowerCase() !== "head") {
       navigate("/admin");
     }
+    employee_reports(token);
   }, [navigate]);
 
   const handleLogout = () => {
@@ -105,6 +106,8 @@ const Head = () => {
     navigate("/admin");
   };
   const [tasks, setTasks] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [reportSortBy, setReportSortBy] = useState("date");
 
   const [openDialog, setOpenDialog] = useState(false);
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
@@ -124,7 +127,7 @@ const Head = () => {
   const [projects, setProjects] = useState([]);
   const [accountFormData, setAccountFormData] = useState({
     projectId: "",
-    status: "completed",
+    status: "pending",
     description: "",
     department: "",
   });
@@ -185,7 +188,22 @@ const Head = () => {
       setError("Failed to fetch assigned tasks");
     }
   };
-
+   
+const employee_reports = async (token)=>{
+  try {
+    const res = await axios.get('http://localhost:8080/admin/get_reports',{
+      headers:{
+        Authorization:token,
+        "Content-Type":"application/json"
+      }
+    })
+    console.log("report data", res.data);
+    const reportsArray = res.data?.data || res.data;
+    setReports(Array.isArray(reportsArray) ? reportsArray : []);
+  } catch (error) {
+    console.log(error);
+  }
+}
   const fetchHeadProjectOptions = async () => {
     try {
       const token = localStorage.getItem("adminToken");
@@ -242,7 +260,7 @@ const Head = () => {
       setOpenAddToAccountsDialog(false);
       setAccountFormData({
         projectId: "",
-        status: "completed",
+        status: "pending",
         description: "",
         department: "",
       });
@@ -540,6 +558,175 @@ const Head = () => {
         {/* Conditional View Rendering */}
         {activeView === "production-activity" ? (
           <ProductionActivityLogger onBack={() => setActiveView("dashboard")} />
+        ) : activeView === "daily-reports" ? (
+          <Box sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 4,
+                flexWrap: "wrap",
+                gap: 2
+              }}
+            >
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  color: "#444",
+                  letterSpacing: "-1px",
+                }}
+              >
+                Employee Daily Reports
+              </Typography>
+              <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                <TextField
+                  select
+                  label="Sort By"
+                  value={reportSortBy}
+                  onChange={(e) => setReportSortBy(e.target.value)}
+                  size="small"
+                  sx={{ minWidth: 150 }}
+                >
+                  <MenuItem value="date">Date (Newest)</MenuItem>
+                  <MenuItem value="name">Name (A-Z)</MenuItem>
+                </TextField>
+                <Button
+                  variant="outlined"
+                  onClick={() => setActiveView("dashboard")}
+                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+                >
+                  Back to Dashboard
+                </Button>
+              </Box>
+            </Box>
+
+            <Grid container spacing={3}>
+              {(Array.isArray(reports) ? [...reports] : [])
+                .sort((a, b) => {
+                  if (reportSortBy === "date") {
+                    const dateA = a.date ? new Date(a.date) : new Date(0);
+                    const dateB = b.date ? new Date(b.date) : new Date(0);
+                    return dateB - dateA;
+                  } else {
+                    const nameA = a.username || "";
+                    const nameB = b.username || "";
+                    return nameA.localeCompare(nameB);
+                  }
+                })
+                .map((report, idx) => (
+                  <Grid item xs={12} sm={6} md={4} key={idx}>
+                    <Box
+                      sx={{
+                        bgcolor: "#ffffff",
+                        borderRadius: "16px",
+                        p: 3,
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
+                        border: "1px solid #f1f5f9",
+                        height: "200px",
+                        display: "flex",
+                        flexDirection: "column",
+                        transition: "transform 0.2s, box-shadow 0.2s",
+                        "&:hover": {
+                          transform: "translateY(-4px)",
+                          boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
+                        },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          mb: 2,
+                          alignItems: "flex-start",
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontWeight: 800,
+                            color: "#0f172a",
+                            fontSize: "1.25rem",
+                            lineHeight: 1.2,
+                            letterSpacing: "-0.02em",
+                          }}
+                        >
+                          {report.username || "Unknown"}
+                        </Typography>
+                        <Chip
+                          label={report.date ? new Date(report.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
+                          size="small"
+                          sx={{
+                            bgcolor: "#e0f2fe",
+                            color: "#0369a1",
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                            borderRadius: "6px",
+                          }}
+                        />
+                      </Box>
+                      <Box
+                        sx={{
+                          flexGrow: 1,
+                          overflow: "hidden",
+                          mb: 3,
+                        }}
+                      >
+                        {report.desc ? (
+                          report.desc.split('*').map((line, i) => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return null;
+                            return (
+                              <Box key={i} sx={{ display: 'flex', mb: 0.5, alignItems: 'flex-start' }}>
+                                {(i > 0 || report.desc.trim().startsWith('*')) && (
+                                  <Box sx={{ mr: 1, color: '#94a3b8', fontSize: '1.2rem', lineHeight: 1.2 }}>•</Box>
+                                )}
+                                <Typography
+                                  sx={{
+                                    color: "#475569",
+                                    fontSize: "0.95rem",
+                                    lineHeight: 1.6,
+                                  }}
+                                >
+                                  {trimmed}
+                                </Typography>
+                              </Box>
+                            );
+                          })
+                        ) : (
+                          <Typography sx={{ color: "#475569", fontSize: "0.95rem", lineHeight: 1.6 }}>
+                            No description provided.
+                          </Typography>
+                        )}
+                      </Box>
+                      <Divider sx={{ mb: 2, opacity: 0.6 }} />
+                      <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+                        <Chip
+                          label={report.deptId || "N/A"}
+                          size="small"
+                          sx={{
+                            bgcolor: "#f1f5f9",
+                            color: "#475569",
+                            fontWeight: 600,
+                            fontSize: "0.75rem",
+                            borderRadius: "4px",
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </Grid>
+                ))}
+              {(!Array.isArray(reports) || reports.length === 0) && (
+                <Grid item xs={12}>
+                  <Box sx={{ textAlign: "center", py: 5 }}>
+                    <Typography variant="h6" color="textSecondary">
+                      No reports available.
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
         ) : (
           <Box
             sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}
@@ -675,7 +862,7 @@ const Head = () => {
                 onClick: () => navigate("/head/project-overview"),
               },
               {
-                label: "Custom",
+                label: "Calendar",
                 icon: <DashboardCustomizeIcon />,
                 onClick: handleOpenCustomDialog,
               },
@@ -690,9 +877,14 @@ const Head = () => {
                 onClick: () => setOpenAddToAccountsDialog(true),
               },
               {
-                label: "Everything",
+                label: "Floor",
                 icon: <AssessmentIcon />,
                 onClick: () => setActiveView("production-activity"),
+              },
+              {
+                label: "Daily Reports",
+                icon: <HistoryIcon />,
+                onClick: () => setActiveView("daily-reports"),
               },
             ].map((action, idx) => (
               <Button
@@ -1087,7 +1279,7 @@ const Head = () => {
                   variant="body2"
                   sx={{ color: "#475569", fontWeight: 500 }}
                 >
-                  Choose a project and add a completed entry for accounts.
+                  Choose a project and add a pending entry for accounts.
                 </Typography>
               </Box>
               <TextField
@@ -1122,7 +1314,7 @@ const Head = () => {
                 fullWidth
                 variant="outlined"
                 disabled
-                helperText="Status is fixed to completed"
+                helperText="Status is fixed to pending until Accounts Head completes payment."
                 sx={{
                   ...accountFieldStyles,
                   "& .MuiOutlinedInput-input": {

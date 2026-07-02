@@ -60,16 +60,16 @@
 
 .adm-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: #50545b;
-  letter-spacing: 0;
+  letter-spacing: -0.3px;
 }
 
 .adm-lede {
   margin: 4px 0 0;
   color: #343941;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
 }
 
@@ -294,7 +294,7 @@
 .adm-section-tabs {
   order: 2;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   padding: 6px;
   border: 1px solid #dce1e7;
@@ -303,7 +303,7 @@
 }
 
 .adm-section-tab {
-  min-height: 40px;
+  min-height: 42px;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -311,6 +311,9 @@
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  letter-spacing: 0.01em;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 
 .adm-section-tab:hover {
@@ -344,10 +347,11 @@
 .adm-panel-title,
 .adm-reports-title,
 .adm-ceo-title {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: #545961;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
 }
 
 .adm-task-list-scroll {
@@ -379,7 +383,7 @@
 .adm-report-title,
 .adm-head-task-title {
   color: #2d333b;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 800;
   line-height: 1.35;
 }
@@ -393,11 +397,11 @@
 
 .adm-chip {
   min-width: 80px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 4px;
   color: #09863d;
   background: #bcffd2;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   text-align: center;
 }
@@ -410,8 +414,8 @@
 .adm-task-project,
 .adm-task-assign {
   margin: 3px 0 0;
-  color: #8a929d;
-  font-size: 10px;
+  color: #6b7280;
+  font-size: 12px;
   font-weight: 600;
 }
 
@@ -425,9 +429,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 28px;
+  min-height: 30px;
   color: #343941;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .adm-sub-dot {
@@ -451,7 +455,7 @@
   border-radius: 4px;
   color: #07843b;
   background: #bcffd2;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   text-align: center;
 }
@@ -566,7 +570,7 @@
 .adm-muted-inline,
 .adm-empty {
   color: var(--adm-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .adm-head-assignments {
@@ -580,8 +584,8 @@
 .adm-head-list-title {
   margin: 0;
   color: #59606a;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
 }
 
 .adm-head-list-hint {
@@ -688,8 +692,8 @@
 
 .adm-head-sub {
   margin-top: 2px;
-  color: #8b939d;
-  font-size: 10px;
+  color: #6b7280;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -732,7 +736,7 @@
   flex-direction: column;
   gap: 2px;
   color: #343941;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -743,7 +747,7 @@
 
 .adm-kv span:last-child {
   color: #59616b;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .adm-task-list-scroll::-webkit-scrollbar,
@@ -771,10 +775,13 @@
 
   .adm-hero-row,
   .adm-controls,
-  .adm-section-tabs,
   .adm-main-split,
   .adm-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .adm-section-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .adm-hero-row {

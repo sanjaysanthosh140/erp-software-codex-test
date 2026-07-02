@@ -134,6 +134,8 @@ const ProductionActivityLogger = ({ onBack }) => {
   const [editingId, setEditingId] = useState(null);
   const [editingEntry, setEditingEntry] = useState(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState(null);
   const [selectedRequirementDetail, setSelectedRequirementDetail] =
     useState("");
   const [refetchKey, setRefetchKey] = useState(0);
@@ -251,7 +253,7 @@ const ProductionActivityLogger = ({ onBack }) => {
         },
       );
 
-      triggerRefetch();
+      await fetchdata_production();
       setSuccess(res.data?.message || "Entry updated successfully!");
       setTimeout(() => setSuccess(null), 3000);
       return true;
@@ -339,11 +341,19 @@ const ProductionActivityLogger = ({ onBack }) => {
     setShowForm(true);
   };
 
+  const handleDeleteClick = (entry) => {
+    setEntryToDelete(entry);
+    setDeleteDialogOpen(true);
+  };
+
   // Handle Delete Entry
-  const handleDeleteEntry = async (id) => {
+  const confirmDeleteEntry = async () => {
+    if (!entryToDelete) return;
+    const id = entryToDelete._id ?? entryToDelete.id;
     setError(null);
     setSuccess(null);
     setLoading(true);
+    setDeleteDialogOpen(false);
 
     try {
       const res = await axios.delete(
@@ -357,7 +367,7 @@ const ProductionActivityLogger = ({ onBack }) => {
       );
 
       if (res.status === 200) {
-        triggerRefetch();
+        await fetchdata_production();
         setSuccess(
           typeof res.data === "string"
             ? res.data
@@ -427,7 +437,7 @@ const ProductionActivityLogger = ({ onBack }) => {
         },
       );
 
-      triggerRefetch();
+      await fetchdata_production();
 
       setSuccess(
         res.data?.message ||
@@ -509,14 +519,14 @@ const ProductionActivityLogger = ({ onBack }) => {
         <Box
           sx={{
             display: "flex",
-            flexDirection: isMobile ? "column" : "row",
+            flexDirection: isTablet ? "column" : "row",
             justifyContent: "space-between",
-            alignItems: isMobile ? "flex-start" : "center",
+            alignItems: isTablet ? "stretch" : "center",
             gap: 2,
             mb: 3,
           }}
         >
-          <Box>
+          <Box sx={{ textAlign: isTablet ? "center" : "left", mb: isTablet ? 1 : 0 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               Activity records
             </Typography>
@@ -525,103 +535,118 @@ const ProductionActivityLogger = ({ onBack }) => {
               below.
             </Typography>
           </Box>
-          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
-            <TextField
-              select
-              size="small"
-              label="Sort by Date"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              sx={{
-                ...inputFieldStyles,
-                minWidth: 160,
-                "& .MuiOutlinedInput-root": {
-                  ...inputFieldStyles["& .MuiOutlinedInput-root"],
-                  borderRadius: "999px",
-                  backgroundColor: "#fff",
-                },
-              }}
-            >
-              <MenuItem value="desc">Newest First</MenuItem>
-              <MenuItem value="asc">Oldest First</MenuItem>
-            </TextField>
-            <TextField
-              type="date"
-              size="small"
-              label="Filter by Date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{
-                ...inputFieldStyles,
-                minWidth: 160,
-                "& .MuiOutlinedInput-root": {
-                  ...inputFieldStyles["& .MuiOutlinedInput-root"],
-                  borderRadius: "999px",
-                  backgroundColor: "#fff",
-                },
-              }}
-            />
-            {filterDate && (
-              <Button
-                variant="outlined"
-                onClick={() => setFilterDate("")}
+          <Box sx={{ 
+            display: "flex", 
+            gap: 1.5, 
+            flexWrap: "wrap", 
+            alignItems: "center", 
+            justifyContent: isTablet ? "center" : "flex-end"
+          }}>
+            <Box sx={{ display: 'flex', gap: 1.5, flex: isMobile ? "1 1 100%" : "0 0 auto", justifyContent: 'center' }}>
+              <TextField
+                select
+                size="small"
+                label="Sort by Date"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
                 sx={{
-                  textTransform: "none",
-                  borderRadius: "999px",
-                  borderColor: "#ef4444",
-                  color: "#ef4444",
-                  px: 2.5,
-                  py: 0.75,
-                  "&:hover": {
-                    borderColor: "#dc2626",
-                    backgroundColor: "rgba(239, 68, 68, 0.08)",
+                  ...inputFieldStyles,
+                  flex: isMobile ? 1 : "none",
+                  minWidth: isMobile ? "auto" : 140,
+                  "& .MuiOutlinedInput-root": {
+                    ...inputFieldStyles["& .MuiOutlinedInput-root"],
+                    borderRadius: "999px",
+                    backgroundColor: "#fff",
                   },
                 }}
               >
-                Clear Filter
+                <MenuItem value="desc">Newest First</MenuItem>
+                <MenuItem value="asc">Oldest First</MenuItem>
+              </TextField>
+              <TextField
+                type="date"
+                size="small"
+                label="Filter by Date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{
+                  ...inputFieldStyles,
+                  flex: isMobile ? 1 : "none",
+                  minWidth: isMobile ? "auto" : 140,
+                  "& .MuiOutlinedInput-root": {
+                    ...inputFieldStyles["& .MuiOutlinedInput-root"],
+                    borderRadius: "999px",
+                    backgroundColor: "#fff",
+                  },
+                }}
+              />
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5, flex: isMobile ? "1 1 100%" : "0 0 auto", justifyContent: 'center' }}>
+              {filterDate && (
+                <Button
+                  variant="outlined"
+                  onClick={() => setFilterDate("")}
+                  sx={{
+                    textTransform: "none",
+                    borderRadius: "999px",
+                    borderColor: "#ef4444",
+                    color: "#ef4444",
+                    px: 2,
+                    py: 0.75,
+                    flex: isMobile ? 1 : "none",
+                    "&:hover": {
+                      borderColor: "#dc2626",
+                      backgroundColor: "rgba(239, 68, 68, 0.08)",
+                    },
+                  }}
+                >
+                  Clear Filter
+                </Button>
+              )}
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  if (onBack) {
+                    onBack();
+                  } else {
+                    navigate("/head");
+                  }
+                }}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: "999px",
+                  px: 2.5,
+                  py: 1,
+                  color: "#374151",
+                  borderColor: "#cbd5e1",
+                  backgroundColor: "#fff",
+                  flex: isMobile ? 1 : "none",
+                  "&:hover": {
+                    backgroundColor: "rgba(37, 99, 235, 0.08)",
+                    borderColor: "#2563eb",
+                  },
+                }}
+              >
+                Go Back
               </Button>
-            )}
-            <Button
-              variant="outlined"
-              onClick={() => {
-                if (onBack) {
-                  onBack();
-                } else {
-                  navigate("/head");
-                }
-              }}
-              sx={{
-                textTransform: "none",
-                borderRadius: "999px",
-                px: 3,
-                py: 1,
-                color: "#374151",
-                borderColor: "#cbd5e1",
-                backgroundColor: "#fff",
-                "&:hover": {
-                  backgroundColor: "rgba(37, 99, 235, 0.08)",
-                  borderColor: "#2563eb",
-                },
-              }}
-            >
-              Go Back
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleToggleForm}
-              sx={{
-                textTransform: "none",
-                borderRadius: "999px",
-                px: 4,
-                py: 1,
-                backgroundColor: "#2563eb",
-                color: "#fff",
-                "&:hover": { backgroundColor: "#1d4ed8" },
-              }}
-            >
-              {showForm ? "Hide Form" : "Add +"}
-            </Button>
+              <Button
+                variant="contained"
+                onClick={handleToggleForm}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: "999px",
+                  px: 3,
+                  py: 1,
+                  backgroundColor: "#2563eb",
+                  color: "#fff",
+                  flex: isMobile ? 1 : "none",
+                  "&:hover": { backgroundColor: "#1d4ed8" },
+                }}
+              >
+                {showForm ? "Hide Form" : "Add +"}
+              </Button>
+            </Box>
           </Box>
         </Box>
 
@@ -640,7 +665,7 @@ const ProductionActivityLogger = ({ onBack }) => {
             "& .MuiDialog-paper": {
               width: "100%",
               maxWidth: 860,
-              margin: 16,
+              margin: isMobile ? 0 : 2,
             },
           }}
         >
@@ -881,315 +906,393 @@ const ProductionActivityLogger = ({ onBack }) => {
           </DialogActions>
         </Dialog>
 
-        <Paper
-          elevation={0}
-          sx={{
-            border: "1px solid #cbd5e1",
-            borderRadius: 2,
-            overflow: "hidden",
-            mb: 4,
-            backgroundColor: "#fff",
-            px: 0,
-          }}
-        >
-          <TableContainer sx={{ width: "100%", maxHeight: "60vh", overflow: "auto" }}>
-            <Table
-              size="small"
-              stickyHeader
-              sx={{
-                minWidth: 1020,
-                borderCollapse: "collapse",
-                width: "100%",
-                "& td": {
-                  fontSize: "0.95rem",
-                },
-              }}
-            >
-              <TableHead>
-                <TableRow sx={{ backgroundColor: "#f8fafc" }}>
-                  {[
-                    "Date",
-                    "Client",
-                    "Category",
-                    "Floor Name",
-                    "From",
-                    "To",
-                    "Time In",
-                    "Time Out",
-                    "Advance",
-                    "Final Amount",
-                    "Additional Requirements",
-                    "Allocated By",
-                    "Actions",
-                  ].map((label) => (
-                    <TableCell
-                      key={label}
-                      sx={{
-                        fontWeight: 700,
-                        color: "#334155",
-                        backgroundColor: "#f8fafc",
-                        borderBottom: "1px solid #e2e8f0",
-                        py: 1.5,
-                        px: 1,
-                        cursor: label === "Date" ? "pointer" : "default",
-                        textAlign:
-                          label === "Advance" ||
-                          label === "Final Amount" ||
-                          label === "Allocated By"
-                            ? "center"
-                            : "left",
-                      }}
-                    >
-                      {label === "Date" ? (
-                        <TableSortLabel
-                          active={true}
-                          direction={sortOrder}
-                          onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
-                          sx={{
-                            color: "#334155 !important",
-                            "& .MuiTableSortLabel-icon": {
-                              color: "#334155 !important",
-                            },
-                          }}
-                        >
-                          {label}
-                        </TableSortLabel>
-                      ) : (
-                        label
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sortedEntries.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={13} sx={{ p: 4, color: "#64748b" }}>
-                      No activity entries yet. Click Add + to create the first
-                      record.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  sortedEntries.map((entry) => (
-                    <TableRow
-                      key={entry._id ?? entry.id}
-                      sx={{
-                        "&:nth-of-type(odd)": { backgroundColor: "#f8fafc" },
-                      }}
-                    >
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                        }}
-                      >
+        {isTablet ? (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 4 }}>
+            {sortedEntries.length === 0 ? (
+              <Typography sx={{ p: 4, color: "#64748b", textAlign: "center", bgcolor: "#fff", borderRadius: 2, border: "1px solid #cbd5e1" }}>
+                No activity entries yet. Click Add + to create the first record.
+              </Typography>
+            ) : (
+              sortedEntries.map((entry) => (
+                <Card key={entry._id ?? entry.id} sx={{ borderRadius: 2, border: "1px solid #cbd5e1", boxShadow: "0 2px 8px rgba(0,0,0,0.04)", bgcolor: "#fff" }}>
+                  <CardContent sx={{ p: 2.5, "&:last-child": { pb: 2.5 } }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, alignItems: 'center' }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#2563eb", bgcolor: "rgba(37, 99, 235, 0.1)", px: 1.5, py: 0.5, borderRadius: 1 }}>
                         {entry.date}
-                      </TableCell>
+                      </Typography>
+                      <Box sx={{ display: "flex", gap: 0.5 }}>
+                        <IconButton size="small" onClick={() => handleEditClick(entry)} sx={{ color: "#2563eb", bgcolor: "rgba(37, 99, 235, 0.05)" }}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" disabled={loading} onClick={() => handleDeleteClick(entry)} sx={{ color: "#ef4444", bgcolor: "rgba(239, 68, 68, 0.05)" }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    </Box>
+
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: "#1e293b", fontSize: "1.1rem" }}>{entry.client}</Typography>
+                    
+                    <Grid container spacing={2} sx={{ mb: 2 }}>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.2 }}>Category</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>{entry.category}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.2 }}>Floor</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>{entry.category === "Floor" ? entry.floorName || "-" : "-"}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.2 }}>Time (From - To)</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>{entry.fromTime || "-"} - {entry.toTime || "-"}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.2 }}>In / Out</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>{entry.timeIn || "-"} / {entry.timeOut || "-"}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.2 }}>Advance / Final</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>₹{entry.advance || "0"} / ₹{entry.finalAmount || "0"}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.2 }}>Allocated By</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>{entry.allocatedBy || "-"}</Typography>
+                      </Grid>
+                    </Grid>
+                    
+                    {entry.additionalRequirements && (
+                      <Box sx={{ mt: 1, p: 1.5 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>Requirements:</Typography>
+                        <Typography variant="body2" sx={{ 
+                          display: '-webkit-box', 
+                          WebkitLineClamp: 2, 
+                          WebkitBoxOrient: 'vertical', 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis',
+                          color: "#000000"
+                        }}>
+                          {entry.additionalRequirements}
+                        </Typography>
+                        {entry.additionalRequirements.length > 50 && (
+                          <Button size="small" sx={{ p: 0, minWidth: 'auto', mt: 0.5, textTransform: 'none', fontWeight: 600 }} onClick={() => handleOpenDetailDialog(entry.additionalRequirements)}>
+                            Read more
+                          </Button>
+                        )}
+                      </Box>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </Box>
+        ) : (
+          <Paper
+            elevation={0}
+            sx={{
+              border: "1px solid #cbd5e1",
+              borderRadius: 2,
+              overflow: "hidden",
+              mb: 4,
+              backgroundColor: "#fff",
+              px: 0,
+            }}
+          >
+            <TableContainer sx={{ width: "100%", maxHeight: "60vh", overflow: "auto" }}>
+              <Table
+                size="small"
+                stickyHeader
+                sx={{
+                  minWidth: 1020,
+                  borderCollapse: "collapse",
+                  width: "100%",
+                  "& td": {
+                    fontSize: "0.95rem",
+                  },
+                }}
+              >
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: "#f8fafc" }}>
+                    {[
+                      "Date",
+                      "Client",
+                      "Category",
+                      "Floor Name",
+                      "From",
+                      "To",
+                      "Time In",
+                      "Time Out",
+                      "Advance",
+                      "Final Amount",
+                      "Additional Requirements",
+                      "Allocated By",
+                      "Actions",
+                    ].map((label) => (
                       <TableCell
+                        key={label}
                         sx={{
+                          fontWeight: 700,
+                          color: "#334155",
+                          backgroundColor: "#f8fafc",
                           borderBottom: "1px solid #e2e8f0",
+                          py: 1.5,
                           px: 1,
-                          py: 1.25,
-                          color: "#000000",
+                          cursor: label === "Date" ? "pointer" : "default",
+                          textAlign:
+                            label === "Advance" ||
+                            label === "Final Amount" ||
+                            label === "Allocated By"
+                              ? "center"
+                              : "left",
                         }}
                       >
-                        {entry.client}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                        }}
-                      >
-                        {entry.category}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                        }}
-                      >
-                        {entry.category === "Floor"
-                          ? entry.floorName || "-"
-                          : "-"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                        }}
-                      >
-                        {entry.fromTime}
-                      </TableCell>
-                      <TableCell
-                        sx={{ 
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                        }}
-                      >
-                        {entry.toTime}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                        }}
-                      >
-                        {entry.timeIn}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                        }}
-                      >
-                        {entry.timeOut}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          textAlign: "center",
-                          color: "#000000",
-                        }}
-                      >
-                        ₹{entry.advance}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          textAlign: "center",
-                          color: "#000000",
-                        }}
-                      >
-                        ₹{entry.finalAmount}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          maxWidth: 260,
-                          color: "#000000",
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            minWidth: 0,
-                          }}
-                        >
-                          <Typography
+                        {label === "Date" ? (
+                          <TableSortLabel
+                            active={true}
+                            direction={sortOrder}
+                            onClick={() => setSortOrder(prev => prev === "asc" ? "desc" : "asc")}
                             sx={{
-                              flex: 1,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {entry.additionalRequirements || "-"}
-                          </Typography>
-                          {entry.additionalRequirements &&
-                          entry.additionalRequirements.length > 30 ? (
-                            <Button
-                              size="small"
-                              onClick={() =>
-                                handleOpenDetailDialog(
-                                  entry.additionalRequirements,
-                                )
-                              }
-                              sx={{
-                                textTransform: "none",
-                                minWidth: "auto",
-                                px: 1,
-                                py: 0.5,
-                              }}
-                            >
-                              More
-                            </Button>
-                          ) : null}
-                        </Box>
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                          color: "#000000",
-                          textAlign: "center",
-                        }}
-                      >
-                        {entry.allocatedBy}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          borderBottom: "1px solid #e2e8f0",
-                          px: 1,
-                          py: 1.25,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            gap: 1,
-                            justifyContent: "flex-end",
-                          }}
-                        >
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEditClick(entry)}
-                            sx={{
-                              color: "#2563eb",
-                              "&:hover": {
-                                backgroundColor: "rgba(37, 99, 235, 0.1)",
+                              color: "#334155 !important",
+                              "& .MuiTableSortLabel-icon": {
+                                color: "#334155 !important",
                               },
                             }}
                           >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            disabled={loading}
-                            onClick={() =>
-                              handleDeleteEntry(entry._id ?? entry.id)
-                            }
-                            sx={{
-                              color: "#ef4444",
-                              "&:hover": {
-                                backgroundColor: "rgba(239, 68, 68, 0.1)",
-                              },
-                            }}
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
+                            {label}
+                          </TableSortLabel>
+                        ) : (
+                          label
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {sortedEntries.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={13} sx={{ p: 4, color: "#64748b", textAlign: "center" }}>
+                        No activity entries yet. Click Add + to create the first
+                        record.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+                  ) : (
+                    sortedEntries.map((entry) => (
+                      <TableRow
+                        key={entry._id ?? entry.id}
+                        sx={{
+                          "&:nth-of-type(odd)": { backgroundColor: "#f8fafc" },
+                        }}
+                      >
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.date}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.client}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.category}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.category === "Floor"
+                            ? entry.floorName || "-"
+                            : "-"}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.fromTime}
+                        </TableCell>
+                        <TableCell
+                          sx={{ 
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.toTime}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.timeIn}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                          }}
+                        >
+                          {entry.timeOut}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            textAlign: "center",
+                            color: "#000000",
+                          }}
+                        >
+                          ₹{entry.advance}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            textAlign: "center",
+                            color: "#000000",
+                          }}
+                        >
+                          ₹{entry.finalAmount}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            maxWidth: 260,
+                            color: "#000000",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              minWidth: 0,
+                            }}
+                          >
+                            <Typography
+                              sx={{
+                                flex: 1,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {entry.additionalRequirements || "-"}
+                            </Typography>
+                            {entry.additionalRequirements &&
+                            entry.additionalRequirements.length > 30 ? (
+                              <Button
+                                size="small"
+                                onClick={() =>
+                                  handleOpenDetailDialog(
+                                    entry.additionalRequirements,
+                                  )
+                                }
+                                sx={{
+                                  textTransform: "none",
+                                  minWidth: "auto",
+                                  px: 1,
+                                  py: 0.5,
+                                }}
+                              >
+                                More
+                              </Button>
+                            ) : null}
+                          </Box>
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                            color: "#000000",
+                            textAlign: "center",
+                          }}
+                        >
+                          {entry.allocatedBy}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            borderBottom: "1px solid #e2e8f0",
+                            px: 1,
+                            py: 1.25,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              justifyContent: "flex-end",
+                            }}
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={() => handleEditClick(entry)}
+                              sx={{
+                                color: "#2563eb",
+                                "&:hover": {
+                                  backgroundColor: "rgba(37, 99, 235, 0.1)",
+                                },
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              disabled={loading}
+                              onClick={() => handleDeleteClick(entry)}
+                              sx={{
+                                color: "#ef4444",
+                                "&:hover": {
+                                  backgroundColor: "rgba(239, 68, 68, 0.1)",
+                                },
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        )}
 
         {/* Submit Button  removed */}
 
@@ -1231,24 +1334,58 @@ const ProductionActivityLogger = ({ onBack }) => {
           </DialogActions>
         </Dialog>
 
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteDialogOpen}
+          onClose={() => setDeleteDialogOpen(false)}
+          PaperProps={{
+            sx: {
+              borderRadius: "16px",
+              width: { xs: "90%", sm: 400 },
+              maxWidth: 420,
+            },
+          }}
+        >
+          <DialogTitle sx={{ fontWeight: 700, color: "#fff", pb: 1 }}>
+            Confirm Deletion
+          </DialogTitle>
+          <DialogContent sx={{ color: "#475569" }}>
+            <Typography color="#ffff">
+              Are you sure you want to delete this activity record? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, pt: 1.5 }}>
+            <Button
+              onClick={() => setDeleteDialogOpen(false)}
+              sx={{
+                color: "#64748b",
+                textTransform: "none",
+                fontWeight: 600,
+                borderRadius: "8px",
+                px: 2,
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmDeleteEntry}
+              variant="contained"
+              color="error"
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                borderRadius: "8px",
+                px: 3,
+                boxShadow: "none",
+              }}
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         {/* Empty State */}
-        {sortedEntries.length === 0 && (
-          <Card
-            sx={{
-              ...glassEffect,
-              textAlign: "center",
-              py: 6,
-              border: "2px dashed rgba(37, 99, 235, 0.3)",
-            }}
-          >
-            <Typography variant="h6" color="textSecondary" sx={{ mb: 1 }}>
-              No entries yet
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Add your first production activity entry above to get started
-            </Typography>
-          </Card>
-        )}
+       
       </Box>
     </motion.div>
   );

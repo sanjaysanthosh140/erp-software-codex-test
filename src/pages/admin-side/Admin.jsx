@@ -2,6 +2,8 @@ import axios from "axios";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductionActivityLogger from "./ProductionActivityLogger";
+import CustomProjectsList from "./CustomProjectsList";
+import CustomProjectDetail from "./CustomProjectDetail";
 import "./AdminDashboard.css";
 
 const API_BASE_URL =
@@ -125,6 +127,7 @@ function Admin() {
   const [reportsLoading, setReportsLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeWorkSection, setActiveWorkSection] = useState("tasks");
+  const [adminCustomProjectId, setAdminCustomProjectId] = useState(null);
 
   const [headAdmins, setHeadAdmins] = useState([]);
   const [headTasks, setHeadTasks] = useState([]);
@@ -151,7 +154,8 @@ function Admin() {
           headers: authHeaders,
         }),
       ]);
-      setHeadAdmins(Array.isArray(admRes.data) ? admRes.data : []);
+      const admRaw = admRes.data?.data ?? admRes.data;
+      setHeadAdmins(Array.isArray(admRaw) ? admRaw : []);
       setHeadTasks(Array.isArray(tasksRes.data) ? tasksRes.data : []);
     } catch (e) {
       console.error(e);
@@ -567,6 +571,31 @@ function Admin() {
     );
   }
 
+  if (activeWorkSection === "custom") {
+    if (adminCustomProjectId) {
+      return (
+        <div id="admin-emp-dash" className="adm-page-bg">
+          <div className="adm-shell">
+            <CustomProjectDetail
+              projectId={adminCustomProjectId}
+              onBack={() => setAdminCustomProjectId(null)}
+            />
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div id="admin-emp-dash" className="adm-page-bg">
+        <div className="adm-shell">
+          <CustomProjectsList
+            onSelectProject={(id) => setAdminCustomProjectId(id)}
+            onBack={() => setActiveWorkSection("tasks")}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div id="admin-emp-dash" className="adm-page-bg">
       <div className="adm-shell">
@@ -613,7 +642,7 @@ function Admin() {
             className={`adm-section-tab ${activeWorkSection === "tasks" ? "adm-section-tab--active" : ""}`}
             onClick={() => setActiveWorkSection("tasks")}
           >
-            Tasks and subtasks
+            Employee Performance
           </button>
           <button
             type="button"
@@ -622,7 +651,7 @@ function Admin() {
             className={`adm-section-tab ${activeWorkSection === "department" ? "adm-section-tab--active" : ""}`}
             onClick={() => setActiveWorkSection("department")}
           >
-            Department Task Allocation
+            Head Tasks
           </button>
           <button
             type="button"
@@ -633,81 +662,94 @@ function Admin() {
           >
             Floor
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeWorkSection === "custom"}
+            className={`adm-section-tab ${activeWorkSection === "custom" ? "adm-section-tab--active" : ""}`}
+            onClick={() => { setActiveWorkSection("custom"); setAdminCustomProjectId(null); }}
+          >
+            calendar 
+          </button>
         </div>
 
-        <div className="adm-controls">
-          <div className="adm-field-card">
-            <label htmlFor="employee-select" className="adm-label">
-              Employees
-            </label>
-            <select
-              id="employee-select"
-              className="adm-select"
-              value={selectedEmployeeId}
-              onChange={(e) => setSelectedEmployeeId(e.target.value)}
-            >
-              {employees.map((employee) => {
-                const displayName =
-                  employee.name || employee.email || employee._id;
-                const dept =
-                  employee.department ||
-                  employee.dept ||
-                  employee.departmentName ||
-                  "No department";
-                return (
-                  <option key={employee._id} value={employee._id}>
-                    {`${displayName} — ${dept}`}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
+        {activeWorkSection === "tasks" ? (
+          <>
+            <div className="adm-controls">
+              <div className="adm-field-card">
+                <label htmlFor="employee-select" className="adm-label">
+                  Employees
+                </label>
+                <select
+                  id="employee-select"
+                  className="adm-select"
+                  value={selectedEmployeeId}
+                  onChange={(e) => setSelectedEmployeeId(e.target.value)}
+                >
+                  {employees.map((employee) => {
+                    const displayName =
+                      employee.name || employee.email || employee._id;
+                    const dept =
+                      employee.department ||
+                      employee.dept ||
+                      employee.departmentName ||
+                      "No department";
+                    return (
+                      <option key={employee._id} value={employee._id}>
+                        {`${displayName} — ${dept}`}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
 
-          <div className="adm-field-card">
-            <label htmlFor="project-select" className="adm-label">
-              Included projects
-            </label>
-            <select
-              id="project-select"
-              className="adm-select"
-              value={selectedProjectId}
-              onChange={(e) => setSelectedProjectId(e.target.value)}
-            >
-              {projects.length > 0 ? (
-                <option value={ALL_PROJECTS_VALUE}>All projects</option>
-              ) : null}
-              {projects.map((project) => (
-                <option key={project._id} value={project._id}>
-                  {project.title || "Untitled Project"}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+              <div className="adm-field-card">
+                <label htmlFor="project-select" className="adm-label">
+                  Included projects
+                </label>
+                <select
+                  id="project-select"
+                  className="adm-select"
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                >
+                  {projects.length > 0 ? (
+                    <option value={ALL_PROJECTS_VALUE}>All projects</option>
+                  ) : null}
+                  {projects.map((project) => (
+                    <option key={project._id} value={project._id}>
+                      {project.title || "Untitled Project"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-        <div className="adm-stats">
-          <StatCard
-            accent
-            title="Employee"
-            value={selectedEmployee?.name || "-"}
-          />
-          <StatCard title="Assigned Task" value={totalTasks} />
-          <StatCard title="Subtasks done" value={completedSubTasks} />
-          <StatCard title="Completed Task" value={completedTasks} />
-        </div>
+            <div className="adm-stats">
+              <StatCard
+                accent
+                title="Employee"
+                value={selectedEmployee?.name || "-"}
+              />
+              <StatCard title="Assigned Task" value={totalTasks} />
+              <StatCard title="Subtasks done" value={completedSubTasks} />
+              <StatCard title="Completed Task" value={completedTasks} />
+            </div>
 
-        <div className="adm-progress-card">
-          <div className="adm-progress-head">
-            <strong>Overall progress</strong>
-            <span className="adm-progress-pct">{calculatedProgress}%</span>
-          </div>
-          <div className="adm-progress-track">
-            <div
-              className="adm-progress-fill"
-              style={{ width: `${calculatedProgress}%` }}
-            />
-          </div>
-        </div>
+            <div className="adm-progress-card">
+              <div className="adm-progress-head">
+                <strong>Overall progress</strong>
+                <span className="adm-progress-pct">{calculatedProgress}%</span>
+              </div>
+              <div className="adm-progress-track">
+                <div
+                  className="adm-progress-fill"
+                  style={{ width: `${calculatedProgress}%` }}
+                />
+              </div>
+            </div>
+          </>
+        ) : null}
 
         {activeWorkSection === "department" ? (
           <section className="adm-ceo-section">
@@ -833,16 +875,6 @@ function Admin() {
             </div>
             <div className="adm-head-assignments">
               <h4 className="adm-head-list-title">Task History</h4>
-              <p className="adm-head-list-hint">
-                One fetch lists every task; below they are{" "}
-                <strong>partitioned</strong> so CEO vs HR is obvious. Summary:{" "}
-                <strong style={{ color: "#3730a3" }}>CEO</strong>{" "}
-                {partitionedHeadTasks.ceo.length} ·{" "}
-                <strong style={{ color: "#166534" }}>HR</strong>{" "}
-                {partitionedHeadTasks.hr.length} ·{" "}
-                <span style={{ color: "#475569" }}>Unlabeled</span>{" "}
-                {partitionedHeadTasks.legacy.length} (total {headTasks.length})
-              </p>
               <div className="adm-legend">
                 <span
                   className="adm-legend-pill"
@@ -956,7 +988,7 @@ function Admin() {
                                     </span>
                                     <span
                                       style={{
-                                        fontSize: "12px",
+                                        fontSize: "13px",
                                         fontWeight: 700,
                                         color: theme.sectionTitle,
                                         opacity: 0.9,
@@ -969,8 +1001,8 @@ function Admin() {
                                     {task.title}
                                   </div>
                                   <div className="adm-head-sub">
-                                    Head: {head?.name || "Unknown"} (
-                                    {head?.department || "—"})
+                                    Head: {head?.name || task.assignedByName || task.headName || "Unassigned"} (
+                                    {head?.department || head?.role || "—"})
                                   </div>
                                 </div>
                                 <div className="adm-head-actions">

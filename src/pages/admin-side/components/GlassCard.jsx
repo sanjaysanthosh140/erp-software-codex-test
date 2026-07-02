@@ -3,7 +3,7 @@ import { Card } from "@mui/material";
 import { motion } from "framer-motion";
 import { glassEffect } from "./SharedStyles";
 
-const GlassCard = ({ children, sx = {}, hoverEffect = true }) => (
+const GlassCard = ({ children, sx = {}, hoverEffect = false }) => (
   <Card
     component={motion.div}
     whileHover={hoverEffect ? {

@@ -597,8 +597,8 @@ const fetchEmployees = async () => {
         sx={{
           minHeight: "100vh",
           background: `linear-gradient(135deg, ${PRIMARY_BG} 0%, ${SECONDARY_BG} 100%)`,
-          p: { xs: 2, md: 4 },
-          pb: 8,
+          p: { xs: 1, md: 2 },
+          pb: 4,
           color: "#0f172a",
         }}
       >
@@ -613,14 +613,14 @@ const fetchEmployees = async () => {
         sx={{
           minHeight: "100vh",
           background: `linear-gradient(135deg, ${PRIMARY_BG} 0%, ${SECONDARY_BG} 100%)`,
-          p: { xs: 2, md: 4 },
-          pb: 8,
+          p: { xs: 1, md: 2 },
+          pb: 4,
           color: "#0f172a",
         }}
       >
         {/* Header Section */}
         <Fade in={true} timeout={800}>
-          <Box sx={{ mb: 6, pl: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <Box sx={{ mb: 1, pl: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
             <Box>
               <Typography variant="h2" sx={{ fontWeight: 800, color: "#1f2937", fontSize: { xs: "1.8rem", md: "2.5rem" }, mb: 0.5 }}>
                 HR Workspace
@@ -721,12 +721,12 @@ const fetchEmployees = async () => {
           {/* Content Area (scrolls top-to-bottom) */}
           <Box
             sx={{
-              p: { xs: 2, md: 4 },
+              p: { xs: 1, md: 2 },
               flex: 1,
               minHeight: 0, // important for flex scrolling containers
               overflowY: "auto",
               overflowX: "hidden",
-              pb: { xs: 4, md: 6 },
+              pb: { xs: 2, md: 4 },
               "&::-webkit-scrollbar": { width: 8 },
               "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 6 },
             }}
@@ -1034,11 +1034,6 @@ const fetchEmployees = async () => {
                                 transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
                                 position: 'relative',
                                 overflow: 'visible',
-                                "&:hover": {
-                                  borderColor: "rgba(56, 189, 248, 0.4)",
-                                  boxShadow: "0 12px 30px rgba(15, 23, 42, 0.08)",
-                                  transform: "translateY(-4px)",
-                                },
                               }}
                             >
                               <CardContent sx={{ p: 3 }}>
@@ -1196,11 +1191,6 @@ const fetchEmployees = async () => {
                               boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
                               cursor: "pointer",
                               transition: "all 0.3s cubic-bezier(0.4,0,0.2,1)",
-                              "&:hover": {
-                                borderColor: "rgba(56,189,248,0.45)",
-                                boxShadow: "0 12px 30px rgba(15,23,42,0.09)",
-                                transform: "translateY(-4px)",
-                              },
                             }}
                           >
                             <CardContent sx={{ p: 3 }}>

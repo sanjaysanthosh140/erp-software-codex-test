@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -69,9 +69,10 @@ const mapDeptName = (name) => {
 
 const CONTENT_TYPES = ["Video", "Image", "Carousel", "Blog", "Ad"];
 
-export default function CustomProjectDetail() {
+export default function CustomProjectDetail({ projectId: propProjectId, onBack: propOnBack }) {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: paramId } = useParams();
+  const id = propProjectId || paramId;
   const { showToast } = useToast();
   const [project, setProject] = useState(null);
   const [newTaskContent, setNewTaskContent] = useState("");
@@ -117,22 +118,24 @@ export default function CustomProjectDetail() {
   };
 
   const token = localStorage.getItem("adminToken");
-  const fetchProject = async () => {
+
+  const fetchProject = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
       const res = await axios.get(`${BASE_URL}/admin/simple_custom_projects`, {
         headers: { Authorization: token },
       });
       const found = (res.data || []).find((p) => p._id === id);
-      setProject(found);
+      setProject(found ?? null);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, token]);
 
-  const fetchAdminProfile = async () => {
+  const fetchAdminProfile = useCallback(async () => {
     try {
       const res = await axios.get(`${BASE_URL}/admin/admin_profile`, {
         headers: {
@@ -149,7 +152,7 @@ export default function CustomProjectDetail() {
       console.error("Error fetching admin profile:", err);
     }
     return null;
-  };
+  }, [token]);
 
   const normalizeDept = (name) => {
     if (!name) return "";
@@ -168,7 +171,7 @@ export default function CustomProjectDetail() {
     }
     fetchProject();
     fetchAdminProfile();
-  }, [token, navigate, id]);
+  }, [token, navigate, fetchProject, fetchAdminProfile]);
 
   const handleAddGlobalTask = async () => {
     if (!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim() || !project) return;
@@ -503,7 +506,7 @@ export default function CustomProjectDetail() {
         }}
       >
         <IconButton
-          onClick={() => navigate("/head/custom-projects")}
+          onClick={() => propOnBack ? propOnBack() : navigate(-1)}
           sx={{ color: TEXT_DARK, bgcolor: alpha(TEXT_DARK, 0.05) }}
         >
           <ArrowBackIcon />

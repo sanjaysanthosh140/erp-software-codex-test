@@ -35,7 +35,7 @@ const StatCard = ({ title, value, icon: Icon }) => (
 
 const StatCards = ({ stats }) => {
   return (
-    <Grid container spacing={3} sx={{ mb: 6, position: "relative", zIndex: 1, width: "100%", justifyContent: "space-between" }}>
+    <Grid container spacing={2} sx={{ mb: 3, position: "relative", zIndex: 1, width: "100%", justifyContent: "space-between" }}>
       {stats.map((stat, index) => (
         <Grid item xs={12} sm={6} lg={3} key={index} sx={{ display: "flex", flexGrow: 1 }}>
           <Zoom in={true} style={{ transitionDelay: `${index * 100}ms` }}>
