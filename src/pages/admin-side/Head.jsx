@@ -193,7 +193,7 @@ const Head = () => {
    
 const employee_reports = async (token)=>{
   try {
-    const res = await axios.get('http://localhost:8080/admin/get_reports',{
+    const res = await axios.get(`${API_URL}/admin/get_reports`,{
       headers:{
         Authorization:token,
         "Content-Type":"application/json"
@@ -400,7 +400,7 @@ const employee_reports = async (token)=>{
       // Add new task via API (POST only)
       console.log("form data", formData);
       const response = await axios.post(
-        "https://project-management-sodtware-backend-end.onrender.com/admin/add_task",
+        `${API_URL}/admin/add_task`,
         formData,
         {
           headers: {

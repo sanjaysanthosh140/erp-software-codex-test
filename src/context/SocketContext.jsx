@@ -46,7 +46,7 @@ export const SocketProvider = ({ children }) => {
     }
 
     // Token exists, create socket
-    const s = io("https://project-management-sodtware-backend-end.onrender.com", {
+    const s = io(`${API_URL}`, {
       auth: { token: currentToken },
       transports: ["websocket"],
     });

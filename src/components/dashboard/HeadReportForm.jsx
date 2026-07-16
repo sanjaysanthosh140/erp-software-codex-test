@@ -3,6 +3,7 @@
  * Similar to WorkReportForm but for Head-side report submission.
  * Submits to: /admin/reports endpoint
  */
+const API_URL = impot.meta.env.VITE_API_URL;
 import {
   Box,
   Typography,
@@ -71,7 +72,7 @@ const HeadReportForm = ({ profile }) => {
     try {
       const token = localStorage.getItem("adminToken");
       const res = await axios.get(
-        "http://localhost:8080/admin/head_reports",
+        `${API_URL}/admin/head_reports`,
         { headers: { Authorization: `${token}` } }
       );
       // Filter for head's own reports
@@ -108,7 +109,7 @@ const HeadReportForm = ({ profile }) => {
           date: toLocalISO(new Date()),
         };
         await axios.post(
-          "http://localhost:8080/admin/Daily_reports",
+          `${API_URL}/admin/Daily_reports`,
           reportData,
           {
             headers: {
@@ -146,7 +147,7 @@ const HeadReportForm = ({ profile }) => {
     try {
       const token = localStorage.getItem("adminToken");
       await axios.delete(
-        `https://project-management-sodtware-backend-end.onrender.com/admin/delete_report/${reportToDelete}`,
+        `${API_URL}/admin/delete_report/${reportToDelete}`,
         { headers: { Authorization: `${token}` } }
       );
       showToast("Report deleted successfully", "success");

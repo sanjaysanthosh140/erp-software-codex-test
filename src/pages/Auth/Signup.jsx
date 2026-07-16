@@ -361,7 +361,7 @@
 //               startIcon={<GoogleIcon />}
 //               onClick={async () => {
 //                 try {
-//                   window.location.href = "https://project-management-sodtware-backend-end.onrender.com/google/auth";
+//                   
 //                 } catch (error) {
 //                   console.log(error);
 //                   showToast("Google Signup Failed", "error");
@@ -389,7 +389,7 @@
 //               startIcon={<GitHubIcon />}
 //               onClick={async () => {
 //                 try {
-//                   window.location.href = "https://project-management-sodtware-backend-end.onrender.com/oauth2/github";
+//                  ;
 //                 } catch (error) {
 //                   console.log(error);
 //                   showToast("GitHub Signup Failed", "error");

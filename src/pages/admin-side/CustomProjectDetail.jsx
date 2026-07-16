@@ -218,11 +218,6 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
   };
   // async function checkHead(token) {
   // try {
-  // let res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/admin_profile", {
-  // headers: {
-  // Authorization: token,
-  // "Content-Type": "application/json"
-  // }
   // });
   // if (res.data) {
   // console.log(res);
