@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useEffect, useState } from "react";
 import {
     Box,
@@ -529,7 +530,7 @@ const HRProjectProgress = () => {
             }
 
             try {
-                const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/hr_projects_progress", {
+                const res = await axios.get(`${API_URL}/admin/hr_projects_progress`, {
                     headers: { Authorization: token, "Content-Type": "application/json" },
                 });
                 setProjects(res.data);
@@ -549,7 +550,7 @@ const HRProjectProgress = () => {
         setOverviewLoading(true);
         try {
             const res = await axios.get(
-                `https://project-management-sodtware-backend-end.onrender.com/admin/project-overview/${project._id}`,
+                `${API_URL}/admin/project-overview/${project._id}`,
                 {
                     headers: { Authorization: token, "Content-Type": "application/json" },
                 },

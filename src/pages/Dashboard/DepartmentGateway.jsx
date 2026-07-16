@@ -1,11 +1,6 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect } from "react";
-import {
-  Box,
-  Typography,
-  Grid,
-  Container,
-  Skeleton,
-} from "@mui/material";
+import { Box, Typography, Grid, Container, Skeleton } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -75,7 +70,12 @@ const DeptCard = ({ dept, onClick, index }) => {
           sx={{
             fontWeight: 700,
             color: "#ffffff",
-            fontSize: { xs: "1.2rem", sm: "1.25rem", md: "1.35rem", lg: "1.45rem" },
+            fontSize: {
+              xs: "1.2rem",
+              sm: "1.25rem",
+              md: "1.35rem",
+              lg: "1.45rem",
+            },
             lineHeight: 1.25,
             letterSpacing: "-0.01em",
             width: "100%",
@@ -102,7 +102,9 @@ const DepartmentGateway = () => {
 
   useEffect(() => {
     axios
-      .get("https://project-management-sodtware-backend-end.onrender.com/admin/departments")
+      .get(
+        `${API_URL}/admin/departments`,
+      )
       .then((res) => {
         setDepartments(res.data);
         setLoading(false);
@@ -122,12 +124,15 @@ const DepartmentGateway = () => {
         return;
       }
 
-      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/employee_profile", {
-        headers: {
-          Authorization: `${token}`,
-          "Content-Type": "application/json",
+      const res = await axios.get(
+        `${API_URL}/employee_profile`,
+        {
+          headers: {
+            Authorization: `${token}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
       const employeeData = res.data;
       const employeeDept = employeeData[0].department;
       const employeeName = employeeData[0].name;
@@ -142,7 +147,7 @@ const DepartmentGateway = () => {
       if (employeeDept === deptId) {
         showToast(
           `Welcome back, ${employeeName}! Entering ${deptDisplay}.`,
-          "success"
+          "success",
         );
         // Mark that user just entered so cockpit can show a welcome if needed
         try {
@@ -161,15 +166,12 @@ const DepartmentGateway = () => {
       } else {
         showToast(
           `Hi ${employeeName}, you currently only have access to the ${userDeptDisplay} department.`,
-          "warning"
+          "warning",
         );
       }
     } catch (error) {
       console.error("Authorization check failed:", error);
-      showToast(
-        "Failed to verify authorization. Please login again.",
-        "error"
-      );
+      showToast("Failed to verify authorization. Please login again.", "error");
     }
   };
 
@@ -261,19 +263,19 @@ const DepartmentGateway = () => {
         >
           {loading
             ? Array.from({ length: 8 }).map((_, i) => (
-              <Box key={`skel-${i}`} sx={{ width: "100%" }}>
-                <SkeletonCard />
-              </Box>
-            ))
+                <Box key={`skel-${i}`} sx={{ width: "100%" }}>
+                  <SkeletonCard />
+                </Box>
+              ))
             : departments.map((dept, i) => (
-              <Box key={dept.id || i} sx={{ display: "flex", width: "100%" }}>
-                <DeptCard
-                  dept={dept}
-                  onClick={() => handleEnter(dept.Dep_id)}
-                  index={i}
-                />
-              </Box>
-            ))}
+                <Box key={dept.id || i} sx={{ display: "flex", width: "100%" }}>
+                  <DeptCard
+                    dept={dept}
+                    onClick={() => handleEnter(dept.Dep_id)}
+                    index={i}
+                  />
+                </Box>
+              ))}
         </Box>
 
         {!loading && departments.length === 0 && (

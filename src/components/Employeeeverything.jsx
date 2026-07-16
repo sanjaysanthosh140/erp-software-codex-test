@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -68,7 +69,23 @@ const getDeptNameFromId = (id) => {
   if (n.includes("graphic")) return "Graphic Design";
   return null;
 };
-const BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
+const normalizeMonthValue = (value) => {
+
+  if (!value) return "";
+  if (typeof value !== "string") return "";
+
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+
+  if (/^\d{4}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) return "";
+
+  const year = parsed.getFullYear();
+  const month = `${parsed.getMonth() + 1}`.padStart(2, "0");
+  return `${year}-${month}`;
+};
 export default function Employeeeverything({ deptId }) {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -87,6 +104,7 @@ export default function Employeeeverything({ deptId }) {
   const [newTaskContent, setNewTaskContent] = useState("");
   const [newTaskDate, setNewTaskDate] = useState("");
   const [newTaskContentType, setNewTaskContentType] = useState("");
+  const [taskDateFilter, setTaskDateFilter] = useState("");
   const [editingTaskId, setEditingTaskId] = useState(null);
   const token = localStorage.getItem("token");
   const myDeptName = getDeptNameFromId(deptId);
@@ -95,7 +113,7 @@ export default function Employeeeverything({ deptId }) {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${BASE_URL}/simple_custom_projects`,
+        `${API_URL}/simple_custom_projects`,
         {
           headers: { Authorization: token },
         },
@@ -132,7 +150,7 @@ export default function Employeeeverything({ deptId }) {
     try {
       let today = new Date().toISOString().split("T")[0];
       await axios.put(
-        `${BASE_URL}/admin/simple_custom_project_global_task`,
+        `${API_URL}/admin/simple_custom_project_global_task`,
         {
           projectId: selectedProject._id,
           taskId: statusTarget.taskId,
@@ -192,7 +210,7 @@ export default function Employeeeverything({ deptId }) {
       }));
 
       await axios.post(
-        `${BASE_URL}/admin/simple_custom_project_global_task`,
+        `${API_URL}/admin/simple_custom_project_global_task`,
         {
           projectId: selectedProject._id,
           content: newTaskContent,
@@ -251,7 +269,7 @@ export default function Employeeeverything({ deptId }) {
       };
 
       await axios.put(
-        `${BASE_URL}/admin/update_project_tasks`,
+        `${API_URL}/admin/update_project_tasks`,
         payload,
         {
           headers: { Authorization: token },
@@ -284,7 +302,7 @@ export default function Employeeeverything({ deptId }) {
     if (window.confirm("Are you sure you want to delete this task?")) {
       try {
         await axios.put(
-          `${BASE_URL}/admin/delete_simple_project_global_task`,
+          `${API_URL}/admin/delete_simple_project_global_task`,
           {
             projectId: selectedProject._id,
             taskId: taskId,
@@ -329,6 +347,12 @@ export default function Employeeeverything({ deptId }) {
     });
     return Math.round((completedSlots / totalSlots) * 100);
   };
+
+  const filteredTasks = (selectedProject?.tasks || []).filter((task) => {
+    if (!taskDateFilter) return true;
+    return normalizeMonthValue(task.date) === normalizeMonthValue(taskDateFilter);
+  });
+
   if (loading && projects.length === 0) {
     return (
       <Box sx={{ p: 4, display: "flex", justifyContent: "center" }}>
@@ -367,6 +391,31 @@ export default function Employeeeverything({ deptId }) {
             </Box>
           </Box>
           {/* Add Task Input Row */}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              mb: 0.5,
+            }}
+          >
+            <TextField
+              size="small"
+              type="month"
+              label="Filter by Month"
+              InputLabelProps={{ shrink: true }}
+              value={taskDateFilter}
+              onChange={(e) => setTaskDateFilter(e.target.value)}
+              sx={{
+                width: "190px",
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: "8px",
+                  "& fieldset": { borderColor: BORDER },
+                },
+                "& .MuiInputBase-input": { color: TEXT_DARK },
+              }}
+            />
+          </Box>
           <Box
             sx={{
               display: "flex",
@@ -574,7 +623,7 @@ export default function Employeeeverything({ deptId }) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(selectedProject.tasks || []).map((task, index) => (
+                {filteredTasks.map((task, index) => (
                   <TableRow
                     key={task._id || index}
                     sx={{
@@ -756,15 +805,16 @@ export default function Employeeeverything({ deptId }) {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(!selectedProject.tasks ||
-                  selectedProject.tasks.length === 0) && (
+                {filteredTasks.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={REQUIRED_DEPTS.length + 5}
                       align="center"
                       sx={{ py: 6, color: TEXT_MUTED }}
                     >
-                      No tasks assigned yet.
+                      {taskDateFilter
+                        ? "No tasks found for the selected month."
+                        : "No tasks assigned yet."}
                     </TableCell>
                   </TableRow>
                 )}

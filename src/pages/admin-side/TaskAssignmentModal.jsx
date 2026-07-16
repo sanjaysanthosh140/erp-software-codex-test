@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect, useMemo } from "react";
 import ReactDOM from "react-dom";
 import {
@@ -204,7 +205,7 @@ const TaskAssignmentModal = ({ open, onClose, projectData, onSave }) => {
 
           let id = projectData._id;
           const response = await axios.get(
-            `https://project-management-sodtware-backend-end.onrender.com/admin/check_assigned_tasks/${id}`,
+            `${API_URL}/admin/check_assigned_tasks/${id}`,
           );
           const existingData = response.data;
 
@@ -356,10 +357,11 @@ const TaskAssignmentModal = ({ open, onClose, projectData, onSave }) => {
       };
       if (isUpdate) {
         let id = projectData._id;
-        await axios.put(`https://project-management-sodtware-backend-end.onrender.com/admin/assigned_tasks/${id}`, submissionData);
+        await axios.put(`${API_URL}/admin/assigned_tasks/${id}`, submissionData);
       } else {
-        await axios.post("https://project-management-sodtware-backend-end.onrender.com/admin/assigned_tasks", submissionData);
+        await axios.post(`${API_URL}/admin/assigned_tasks`, submissionData);
         setIsUpdate(true);
+
       }
       if (onSave) onSave(submissionData);
       onClose();

@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -66,7 +67,7 @@ const HeadProjectView = () => {
     const fetchProjects = async () => {
       try {
         const response = await axios.get(
-          "https://project-management-sodtware-backend-end.onrender.com/admin/headProj",
+          `${API_URL}/admin/headProj`,
           {
             headers: {
               Authorization: `${token}`,
@@ -97,7 +98,7 @@ const HeadProjectView = () => {
     if (!projectToDelete) return;
     try {
       console.log("Delete triggered for project:", projectToDelete);
-      let res = await axios.delete(`https://project-management-sodtware-backend-end.onrender.com/admin/delete_proj/${projectToDelete}`);
+      let res = await axios.delete(`${API_URL}/admin/delete_proj/${projectToDelete}`);
       console.log("delete response", res.data);
       if (res.status === 200) {
         setProjectsList((prev) => prev.filter((project) => project._id !== projectToDelete));
@@ -118,7 +119,7 @@ const HeadProjectView = () => {
   const handleEdit = async (e, id) => {
     if (e) e.stopPropagation();
     try {
-      let res = await axios.delete(`https://project-management-sodtware-backend-end.onrender.com/admin/edit_project/${id}`, {
+      let res = await axios.delete(`${API_URL}/admin/edit_project/${id}`, {
         headers: {
           Authorization: `${token}`,
           "Content-Type": "application/json",
@@ -380,18 +381,18 @@ const HeadProjectView = () => {
         onSubmit={async (finalData) => {
           try {
             if (editingProjectData?._id) {
-              await axios.put(`https://project-management-sodtware-backend-end.onrender.com/admin/updateProj/${editingProjectData._id}`, finalData, {
+              await axios.put(`${API_URL}/admin/updateProj/${editingProjectData._id}`, finalData, {
                 headers: { Authorization: `${token}` }
               });
               setAlertMessage("Project updated successfully");
             } else {
-              await axios.post("https://project-management-sodtware-backend-end.onrender.com/admin/createProj", finalData, {
+              await axios.post(`${API_URL}/admin/createProj`, finalData, {
                 headers: { Authorization: `${token}` }
               });
               setAlertMessage("Project created successfully");
             }
             setAlertOpen(true);
-            const response = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/headProj", {
+            const response = await axios.get(`${API_URL}/admin/headProj`, {
               headers: { Authorization: `${token}` }
             });
             setProjectsList(response.data);

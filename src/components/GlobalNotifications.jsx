@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL
 import React from "react";
 import axios from "axios";
 import { useSocket } from "../context/SocketContext";
@@ -95,7 +96,7 @@ export default function GlobalNotifications() {
         const token =
           localStorage.getItem("token") || localStorage.getItem("adminToken");
         if (!token) return;
-        const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/employee_profile", {
+        const res = await axios.get(`${API_URL}/employee_profile`, {
           headers: { Authorization: token },
         });
         const profileData = Array.isArray(res.data) ? res.data[0] : res.data;

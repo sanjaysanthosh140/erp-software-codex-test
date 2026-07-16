@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -25,7 +26,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 
 const HeadBillings = () => {
-  const BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
   const navigate = useNavigate();
   const adminRole = (localStorage.getItem("adminRole") || "").toLowerCase().trim();
   const [adminProfile, setAdminProfile] = useState(null);
@@ -97,7 +97,7 @@ const HeadBillings = () => {
     }
     try {
       const pro_id = entry._id;
-      await axios.delete(`${BASE_URL}/admin/remove_account_data/${pro_id}`);
+      await axios.delete(`${API_URL}/admin/remove_account_data/${pro_id}`);
       setBillingEntries((prevEntries) =>
         prevEntries.filter((item) => item._id !== pro_id)
       );
@@ -130,7 +130,7 @@ const HeadBillings = () => {
     let pro_id = selectedEntry._id;
     try {
       await axios.put(
-        `${BASE_URL}/admin/update_account_billings_data/${pro_id}`,
+        `${API_URL}/admin/update_account_billings_data/${pro_id}`,
         updatedForm,
       );
     } catch (error) {
@@ -147,7 +147,7 @@ const HeadBillings = () => {
 
     const fetchAdminProfile = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/admin/admin_profile`, {
+        const response = await axios.get(`${API_URL}/admin/admin_profile`, {
           headers: { Authorization: token },
         });
         const profile = Array.isArray(response.data)
@@ -161,7 +161,7 @@ const HeadBillings = () => {
 
     const fetchBillingEntries = async () => {
       try {
-        const response = await axios.get(`${BASE_URL}/admin/billings`);
+        const response = await axios.get(`${API_URL}/admin/billings`);
         const backendEntries = Array.isArray(response.data)
           ? response.data
           : [];

@@ -1,14 +1,15 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import axios from "axios";
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ProductionActivityLogger from "./ProductionActivityLogger";
 import CustomProjectsList from "./CustomProjectsList";
 import CustomProjectDetail from "./CustomProjectDetail";
+import ReportManager from "./components/ReportManager";
+import { getDeptColor, normalizeDeptName } from "./components/SharedStyles";
 import "./AdminDashboard.css";
 
-const API_BASE_URL =
-  "https://project-management-sodtware-backend-end.onrender.com";
-
+  
 /** Select value to load tasks/subtasks from every project the employee is on */
 const ALL_PROJECTS_VALUE = "__ALL_PROJECTS__";
 
@@ -125,6 +126,10 @@ function Admin() {
   const [projectData, setProjectData] = useState(null);
   const [employeeReports, setEmployeeReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
+  const [reports, setReports] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [reportDate, setReportDate] = useState("");
+  const [reportDeptFilter, setReportDeptFilter] = useState("ALL");
   const [error, setError] = useState("");
   const [activeWorkSection, setActiveWorkSection] = useState("tasks");
   const [adminCustomProjectId, setAdminCustomProjectId] = useState(null);
@@ -149,8 +154,8 @@ function Admin() {
     setHeadTasksLoading(true);
     try {
       const [admRes, tasksRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/admin/get_admins`, { headers: authHeaders }),
-        axios.get(`${API_BASE_URL}/admin/hr_assigned_tasks`, {
+        axios.get(`${API_URL}/admin/get_admins`, { headers: authHeaders }),
+        axios.get(`${API_URL}/admin/hr_assigned_tasks`, {
           headers: authHeaders,
         }),
       ]);
@@ -199,13 +204,13 @@ function Admin() {
       if (editingHeadTask) {
         //  same in hr dasboard api reused
         await axios.put(
-          `${API_BASE_URL}/admin/hr_assigned_tasks/${editingHeadTask._id}`,
+          `${API_URL}/admin/hr_assigned_tasks/${editingHeadTask._id}`,
           payload,
         );
         setHeadTaskBanner({ type: "ok", message: "Head task updated." });
       } else {
         console.log(payload);
-        await axios.post(`${API_BASE_URL}/admin/hr_assigned_tasks`, payload);
+        await axios.post(`${API_URL}/admin/hr_assigned_tasks`, payload);
         setHeadTaskBanner({
           type: "ok",
           message: "Task assigned to head (tracked as CEO).",
@@ -245,7 +250,7 @@ function Admin() {
     if (!window.confirm("Remove this assignment for the head?")) return;
     try {
       setHeadTasksLoading(true);
-      await axios.delete(`${API_BASE_URL}/admin/hr_assigned_tasks/${id}`);
+      await axios.delete(`${API_URL}/admin/hr_assigned_tasks/${id}`);
       setHeadTaskBanner({ type: "ok", message: "Task removed." });
       if (editingHeadTask?._id === id) {
         setEditingHeadTask(null);
@@ -355,12 +360,28 @@ function Admin() {
     return { ceo, hr, legacy };
   }, [headTasks]);
 
+  const normalizedDepartmentOptions = useMemo(() => {
+    const values = new Set();
+
+    departments.forEach((dept) => {
+      const label = dept?.title || dept?.name || dept?.departmentName || "";
+      if (label) values.add(normalizeDeptName(label));
+    });
+
+    employees.forEach((employee) => {
+      const label = employee?.department || employee?.dept || employee?.departmentName || employee?.deptName || "";
+      if (label) values.add(normalizeDeptName(label));
+    });
+
+    return Array.from(values).filter(Boolean);
+  }, [departments, employees]);
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
         setLoading(true);
         setError("");
-        const res = await axios.get(`${API_BASE_URL}/admin/users`, {
+        const res = await axios.get(`${API_URL}/admin/users`, {
           headers: authHeaders,
         });
         console.log(res.data);
@@ -378,13 +399,37 @@ function Admin() {
   }, [authHeaders]);
 
   useEffect(() => {
+    const fetchReportsAndDepartments = async () => {
+      try {
+        const [reportsRes, departmentsRes] = await Promise.all([
+          axios.get(`${API_URL}/admin/reports`, { headers: authHeaders }),
+          axios.get(`${API_URL}/admin/departments`, { headers: authHeaders }),
+        ]);
+
+        const reportRows = Array.isArray(reportsRes.data) ? reportsRes.data : [];
+        const departmentsPayload = departmentsRes.data?.data ?? departmentsRes.data;
+        const departmentRows = Array.isArray(departmentsPayload) ? departmentsPayload : [];
+
+        setReports(reportRows);
+        setDepartments(departmentRows);
+      } catch (err) {
+        console.error(err);
+        setReports([]);
+        setDepartments([]);
+      }
+    };
+
+    fetchReportsAndDepartments();
+  }, [authHeaders]);
+
+  useEffect(() => {
     const fetchEmployeeProjects = async () => {
       if (!selectedEmployeeId) return;
       try {
         setLoading(true);
         setError("");
         const projectRes = await axios.get(
-          `${API_BASE_URL}/employee_included_proj`,
+          `${API_URL}/employee_included_proj`,
           {
             headers: authHeaders,
             params: { empId: selectedEmployeeId },
@@ -421,7 +466,7 @@ function Admin() {
       try {
         setReportsLoading(true);
         const reportRes = await axios.get(
-          `${API_BASE_URL}/admin/reports/employee/${selectedEmployeeId}`,
+          `${API_URL}/admin/reports/employee/${selectedEmployeeId}`,
           {
             headers: authHeaders,
           },
@@ -455,7 +500,7 @@ function Admin() {
         setError("");
         if (selectedProjectId === ALL_PROJECTS_VALUE) {
           const todoRes = await axios.get(
-            `${API_BASE_URL}/achive_created_todo_list`,
+            `${API_URL}/achive_created_todo_list`,
             {
               headers: authHeaders,
               params: { empId: selectedEmployeeId },
@@ -466,7 +511,7 @@ function Admin() {
           const taskResults = await Promise.all(
             projects.map((proj) =>
               axios
-                .get(`${API_BASE_URL}/emp_proj-tasks/${proj._id}`, {
+                .get(`${API_URL}/emp_proj-tasks/${proj._id}`, {
                   headers: authHeaders,
                   params: { empId: selectedEmployeeId },
                 })
@@ -496,11 +541,11 @@ function Admin() {
           });
         } else {
           const [taskRes, todoRes] = await Promise.all([
-            axios.get(`${API_BASE_URL}/emp_proj-tasks/${selectedProjectId}`, {
+            axios.get(`${API_URL}/emp_proj-tasks/${selectedProjectId}`, {
               headers: authHeaders,
               params: { empId: selectedEmployeeId },
             }),
-            axios.get(`${API_BASE_URL}/achive_created_todo_list`, {
+            axios.get(`${API_URL}/achive_created_todo_list`, {
               headers: authHeaders,
               params: { empId: selectedEmployeeId },
             }),
@@ -669,9 +714,34 @@ function Admin() {
             className={`adm-section-tab ${activeWorkSection === "custom" ? "adm-section-tab--active" : ""}`}
             onClick={() => { setActiveWorkSection("custom"); setAdminCustomProjectId(null); }}
           >
-            calendar 
+            calendar
+          </button>
+
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeWorkSection === "reports"}
+            className={`adm-section-tab ${activeWorkSection === "reports" ? "adm-section-tab--active" : ""}`}
+            onClick={() => setActiveWorkSection("reports")}
+          >
+            Daily Reports
           </button>
         </div>
+
+        {activeWorkSection === "reports" ? (
+          <ReportManager
+            reports={reports}
+            users={employees}
+            departments={departments}
+            reportDate={reportDate}
+            setReportDate={setReportDate}
+            reportDeptFilter={reportDeptFilter}
+            setReportDeptFilter={setReportDeptFilter}
+            normalizedDepartmentOptions={normalizedDepartmentOptions}
+            getDeptColor={getDeptColor}
+            normalizeDeptName={normalizeDeptName}
+          />
+        ) : null}
 
         {activeWorkSection === "tasks" ? (
           <>

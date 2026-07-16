@@ -3,6 +3,7 @@
  * Clean white cards: title, priority badge, description, deadline, progress bar, "View Details" button.
  * All API logic preserved exactly.
  */
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect } from "react";
 import { Box, Typography, Grid, Button, Chip, Paper, Pagination } from "@mui/material";
 import { motion } from "framer-motion";
@@ -27,7 +28,7 @@ const ProjectsPreview = ({ userId, maxProjects }) => {
       setIsLoading(true);
       try {
         const response = await axios.get(
-          "https://project-management-sodtware-backend-end.onrender.com/employee_included_proj",
+          `${API_URL}/employee_included_proj`,
           {
             headers: {
               Authorization: `${userId}`,

@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
@@ -47,7 +48,6 @@ const PAPER_BG = "#ffffff";
 const TEXT_DARK = "#000000";
 const TEXT_MUTED = "#64748b";
 const BORDER = "rgba(15, 23, 42, 0.08)";
-let BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
 const REQUIRED_DEPTS = [
   "Content Writing",
   "Video Production",
@@ -123,7 +123,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
     if (!id) return;
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/admin/simple_custom_projects`, {
+      const res = await axios.get(`${API_URL}/admin/simple_custom_projects`, {
         headers: { Authorization: token },
       });
       const found = (res.data || []).find((p) => p._id === id);
@@ -137,7 +137,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
 
   const fetchAdminProfile = useCallback(async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/admin/admin_profile`, {
+      const res = await axios.get(`${API_URL}/admin/admin_profile`, {
         headers: {
           Authorization: token,
           "Content-Type": "application/json",
@@ -184,7 +184,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
       }));
 
       await axios.post(
-        `${BASE_URL}/admin/simple_custom_project_global_task`,
+        `${API_URL}/admin/simple_custom_project_global_task`,
         {
           projectId: project._id,
           content: newTaskContent,
@@ -274,7 +274,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
       }
 
       await axios.put(
-        `${BASE_URL}/admin/simple_custom_project_global_task`,
+        `${API_URL}/admin/simple_custom_project_global_task`,
         {
           projectId: project._id,
           taskId: statusTarget.taskId,
@@ -344,7 +344,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
   const handleEditTask = async (task, projectId) => {
     try {
       let res = await axios.get(
-        `${BASE_URL}/admin/update_simple_proj_task/${projectId}`,
+        `${API_URL}/admin/update_simple_proj_task/${projectId}`,
       );
       console.log("from bE", res);
       const projectData = res.data?.project ?? res.data;
@@ -376,7 +376,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
         contentType: newTaskContentType,
       };
 
-      await axios.put(`${BASE_URL}/admin/update_project_tasks`, payload, {
+      await axios.put(`${API_URL}/admin/update_project_tasks`, payload, {
         headers: { Authorization: token },
       });
 
@@ -398,7 +398,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
     if (!taskId) return;
     try {
       await axios.put(
-        `${BASE_URL}/admin/delete_simple_project_global_task`,
+        `${API_URL}/admin/delete_simple_project_global_task`,
         {
           projectId: project._id,
           taskId: taskId,

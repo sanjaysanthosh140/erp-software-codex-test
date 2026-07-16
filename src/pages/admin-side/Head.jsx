@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -49,6 +50,7 @@ import axios from "axios";
 import CreateProjectDialog from "../../components/CreateProjectDialog";
 import TeamChat from "../../components/TeamChat";
 import ProductionActivityLogger from "./ProductionActivityLogger";
+import HeadReportForm from "../../components/dashboard/HeadReportForm";
 // import EverythingComponent from "../../components/EverythingComponent";
 import io from "socket.io-client";
 import { NotificationBell } from "../../components/GlobalNotifications";
@@ -90,8 +92,7 @@ const iPhoneGlassButton = {
 
 const Head = () => {
   const navigate = useNavigate();
-  const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
-  const socket = io(API_BASE_URL);
+  const socket = io(API_URL);
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     const role = localStorage.getItem("adminRole") || "";
@@ -105,6 +106,7 @@ const Head = () => {
     localStorage.clear();
     navigate("/admin");
   };
+  const [profile, setProfile] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [reports, setReports] = useState([]);
   const [reportSortBy, setReportSortBy] = useState("date");
@@ -179,7 +181,7 @@ const Head = () => {
       const headId = getHeadIdFromToken();
       if (!headId) return;
       const res = await axios.get(
-        `${API_BASE_URL}/admin/hr_assigned_tasks?headId=${headId}`,
+        `${API_URL}/admin/hr_assigned_tasks?headId=${headId}`,
       );
       console.log("tasks from admin", res.data, headId);
       setTasks(res.data || []);
@@ -207,7 +209,7 @@ const employee_reports = async (token)=>{
   const fetchHeadProjectOptions = async () => {
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await axios.get(`${API_BASE_URL}/admin/headProj`, {
+      const res = await axios.get(`${API_URL}/admin/headProj`, {
         headers: {
           Authorization: token,
           "Content-Type": "application/json",
@@ -246,7 +248,7 @@ const employee_reports = async (token)=>{
     try {
       const token = localStorage.getItem("adminToken");
       const response = await axios.post(
-        `${API_BASE_URL}/admin/add_to_accounts`,
+        `${API_URL}/admin/add_to_accounts`,
         payload,
         {
           headers: {
@@ -293,6 +295,20 @@ const employee_reports = async (token)=>{
   };
 
   useEffect(() => {
+    // Initialize profile from token
+    const payload = getTokenPayload();
+    if (payload) {
+      setProfile({
+        _id: payload.id || payload._id,
+        id: payload.id || payload._id,
+        name: payload.name || "Head",
+        department: payload.department || payload.dept || "",
+        email: payload.email || "",
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     fetchHeadTasks();
     fetchHeadProjectOptions();
   }, []);
@@ -308,7 +324,7 @@ const employee_reports = async (token)=>{
         status,
       };
       await axios.put(
-        `${API_BASE_URL}/admin/hr_assigned_tasks/${task._id}`,
+        `${API_URL}/admin/hr_assigned_tasks/${task._id}`,
         payload,
       );
       setTasks((prev) =>
@@ -423,7 +439,7 @@ const employee_reports = async (token)=>{
       // console.log("project data ", projectData);
       // TODO: Replace with actual API call
       const response = await axios.post(
-        `${API_BASE_URL}/admin/create_project`,
+        `${API_URL}/admin/create_project`,
         projectData,
         {
           headers: {
@@ -558,6 +574,40 @@ const employee_reports = async (token)=>{
         {/* Conditional View Rendering */}
         {activeView === "production-activity" ? (
           <ProductionActivityLogger onBack={() => setActiveView("dashboard")} />
+        ) : activeView === "head-reports" ? (
+          <Box sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 4,
+                flexWrap: "wrap",
+                gap: 2
+              }}
+            >
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 700,
+                  color: "#444",
+                  letterSpacing: "-1px",
+                }}
+              >
+                Head Daily Reports
+              </Typography>
+              <Button
+                variant="outlined"
+                onClick={() => setActiveView("dashboard")}
+                sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+              >
+                Back to Dashboard
+              </Button>
+            </Box>
+            <Box sx={{ bgcolor: "#fff", p: 3, borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+              <HeadReportForm profile={profile} />
+            </Box>
+          </Box>
         ) : activeView === "daily-reports" ? (
           <Box sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}>
             <Box
@@ -885,6 +935,11 @@ const employee_reports = async (token)=>{
                 label: "Daily Reports",
                 icon: <HistoryIcon />,
                 onClick: () => setActiveView("daily-reports"),
+              },
+              {
+                label: "Head Reports",
+                icon: <NotesIcon />,
+                onClick: () => setActiveView("head-reports"),
               },
             ].map((action, idx) => (
               <Button

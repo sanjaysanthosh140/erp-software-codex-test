@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -536,7 +537,7 @@ const HeadProjectOverview = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/headProj", {
+        const res = await axios.get(`${API_URL}/admin/headProj`, {
           headers: { Authorization: token, "Content-Type": "application/json" },
         });
         console.log(res.data);
@@ -558,7 +559,7 @@ const HeadProjectOverview = () => {
     setOverviewLoading(true);
     try {
       const res = await axios.get(
-        `https://project-management-sodtware-backend-end.onrender.com/admin/project-overview/${project._id}`,
+        `${API_URL}/admin/project-overview/${project._id}`,
         {
           headers: { Authorization: token, "Content-Type": "application/json" },
         },

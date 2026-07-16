@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
@@ -24,7 +25,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-const BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
 const ACCENT = "#0f766e";
 const PAGE_BG = "#fcfcfc"; // Matches Head.jsx
 const PAPER_BG = "#ffffff";
@@ -89,7 +89,7 @@ export default function CustomProjectsList({ onSelectProject, onBack }) {
     let pro_id = project._id;
     try {
       let res = await axios.get(
-        `${BASE_URL}/admin/simple_custom_project/${pro_id}`,
+        `${API_URL}/admin/simple_custom_project/${pro_id}`,
         {
           headers: {
             Authorization: token,
@@ -120,7 +120,7 @@ export default function CustomProjectsList({ onSelectProject, onBack }) {
     if (confirmDelete) {
       try {
         await axios.delete(
-          `${BASE_URL}/admin/simple_custom_project/${pro_id}`,
+          `${API_URL}/admin/simple_custom_project/${pro_id}`,
           {
             headers: { Authorization: token },
           },
@@ -137,7 +137,7 @@ export default function CustomProjectsList({ onSelectProject, onBack }) {
     try {
       setLoading(true);
       const res = await axios.get(
-        `${BASE_URL}/admin/simple_custom_projects`,
+        `${API_URL}/admin/simple_custom_projects`,
         {
           headers: { Authorization: token },
         },
@@ -152,9 +152,10 @@ export default function CustomProjectsList({ onSelectProject, onBack }) {
 
   const fetchDepartments = useCallback(async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/admin/get_admins`, {
+      const res = await axios.get(`${API_URL}/admin/get_admins`, {
         headers: { Authorization: token },
       });
+      console.log("fetch departments",res);
       const raw = res.data?.data ?? res.data;
       const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
 
@@ -216,7 +217,7 @@ export default function CustomProjectsList({ onSelectProject, onBack }) {
         })),
       };
       await axios.post(
-        `${BASE_URL}/admin/simple_custom_project`,
+        `${API_URL}/admin/simple_custom_project`,
         payload,
         {
           headers: { Authorization: token },
@@ -245,7 +246,7 @@ export default function CustomProjectsList({ onSelectProject, onBack }) {
         })),
       };
       await axios.put(
-        `${BASE_URL}/admin/simple_custom_project/${edit_id}`,
+        `${API_URL}/admin/simple_custom_project/${edit_id}`,
         payload,
         {
           headers: { Authorization: token },

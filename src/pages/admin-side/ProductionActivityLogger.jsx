@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   Box,
@@ -243,7 +244,7 @@ const ProductionActivityLogger = ({ onBack }) => {
     try {
       const id = updatedEntry._id ?? updatedEntry.id;
       const res = await axios.put(
-        `https://project-management-sodtware-backend-end.onrender.com/admin/production-activitys-edits/${id}`,
+        `${API_URL}/admin/production-activitys-edits/${id}`,
         buildUpdatePayload(updatedEntry),
         {
           headers: {
@@ -299,7 +300,7 @@ const ProductionActivityLogger = ({ onBack }) => {
   const fetchdata_production = useCallback(async () => {
     try {
       const res = await axios.get(
-        "https://project-management-sodtware-backend-end.onrender.com/admin/production_activity",
+        `${API_URL}/admin/production_activity`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -357,7 +358,7 @@ const ProductionActivityLogger = ({ onBack }) => {
 
     try {
       const res = await axios.delete(
-        `https://project-management-sodtware-backend-end.onrender.com/admin/production-activities/${id}`,
+        `${API_URL}/admin/production-activities/${id}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -427,7 +428,7 @@ const ProductionActivityLogger = ({ onBack }) => {
       };
 
       const res = await axios.post(
-        "https://project-management-sodtware-backend-end.onrender.com/admin/production-activities",
+        `${API_URL}/admin/production-activities`,
         payload,
         {
           headers: {

@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -56,7 +57,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     setError(null);
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/reports", {
+      const res = await axios.get(`${API_URL}/admin/reports`, {
         headers: {
           Authorization: `${token}`,
         },
@@ -94,7 +95,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`https://project-management-sodtware-backend-end.onrender.com/admin/update_report/${editingId}`,
+      await axios.put(`${API_URL}/admin/update_report/${editingId}`,
         { desc: editDesc },
         { headers: { Authorization: `${token}` } }
       );
@@ -125,7 +126,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     setDeleteDialogOpen(false); // Close immediately for responsive feel
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`https://project-management-sodtware-backend-end.onrender.com/admin/delete_report/${reportToDelete}`, {
+      await axios.delete(`${API_URL}/admin/delete_report/${reportToDelete}`, {
         headers: { Authorization: `${token}` }
       });
       showToast("Report deleted successfully", "success");

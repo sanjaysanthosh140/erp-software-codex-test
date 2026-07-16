@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import {
@@ -214,7 +215,7 @@ const CreateProjectDialog = ({ open, onClose, onSubmit, initialData }) => {
   const fetchEmployees = async () => {
     try {
       let token = localStorage.getItem("adminToken");
-      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/employes", {
+      const res = await axios.get(`${API_URL}/admin/employes`, {
         headers: { Authorization: `${token}`, "Content-Type": "application/json" },
       });
       const mappedEmployees = res.data.map((emp) => {

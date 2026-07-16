@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Box, Typography, IconButton, TextField, Avatar,
@@ -18,7 +19,7 @@ import MoreVertRoundedIcon from "@mui/icons-material/MoreVertRounded";
 import NotificationsActiveRoundedIcon from "@mui/icons-material/NotificationsActiveRounded";
 import axios from "axios";
 import io from "socket.io-client";
-const socket = io("https://project-management-sodtware-backend-end.onrender.com", {
+const socket = io(`${API_URL}`, {
   autoConnect: false
 });
 
@@ -108,8 +109,8 @@ const TeamChat = () => {
           try {
             // Determine endpoint based on which token is present
             const profileEndpoint = adminToken
-              ? "https://project-management-sodtware-backend-end.onrender.com/admin/admin_profile"
-              : "https://project-management-sodtware-backend-end.onrender.com/employee_profile";
+              ? `${API_URL}/admin/admin_profile`
+              : `${API_URL}/employee_profile`;
 
             const profileRes = await axios.get(profileEndpoint, {
               headers: { Authorization: token }
@@ -146,11 +147,11 @@ const TeamChat = () => {
           }
 
           // Fetch departments
-          const deptsRes = await axios.get("https://project-management-sodtware-backend-end.onrender.com/admin/departments");
+          const deptsRes = await axios.get(`${API_URL}/admin/departments`);
           setDepartments(deptsRes.data);
 
           // Fetch groups
-          const groupsRes = await axios.get("https://project-management-sodtware-backend-end.onrender.com/groups/user", {
+          const groupsRes = await axios.get(`${API_URL}/groups/user`, {
             headers: { Authorization: token }
           });
           console.log("Groups response:", groupsRes.data);
@@ -181,7 +182,7 @@ const TeamChat = () => {
   const fetchRoomHistory = useCallback(async (roomId) => {
     if (!roomId) return;
     try {
-      const response = await axios.get(`https://project-management-sodtware-backend-end.onrender.com/messages/${roomId}`);
+      const response = await axios.get(`${API_URL}/messages/${roomId}`);
       if (response.data) {
         console.log("Fetched history for sync:", response.data.length, "messages");
         const history = response.data.map(m => ({
@@ -411,10 +412,6 @@ const TeamChat = () => {
     try {
       const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
 
-      // Call REST API for persistence
-      // await axios.delete(`https://project-management-sodtware-backend-end.onrender.com/messages/${msgId}`, {
-      //   headers: { Authorization: token }
-      // });
 
       // Emit socket event for real-time update
       socket.emit("delete_message", { roomId: activeRoom.id, messageId: msgId });
@@ -439,7 +436,7 @@ const TeamChat = () => {
     if (!selectedGroup) return;
     try {
       const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
-      await axios.delete(`https://project-management-sodtware-backend-end.onrender.com/admin/group_delete/${selectedGroup.id}`, {
+      await axios.delete(`${API_URL}/admin/group_delete/${selectedGroup.id}`, {
         headers: { Authorization: token }
       });
       setGroups(prev => prev.filter(g => g.id !== selectedGroup.id));
@@ -455,7 +452,7 @@ const TeamChat = () => {
     try {
       const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
       // Fetch the latest group data (not strictly necessary but ensures parity)
-      const res = await axios.get(`https://project-management-sodtware-backend-end.onrender.com/admin/groups/${selectedGroup.id}`, {
+      const res = await axios.get(`${API_URL}/admin/groups/${selectedGroup.id}`, {
         headers: { Authorization: token }
       });
       // console.log("edit group", res.data);
@@ -493,7 +490,7 @@ const TeamChat = () => {
         members: [...selectedMembers, user.id],
         createdBy: user.id
       };
-      const res = await axios.put(`https://project-management-sodtware-backend-end.onrender.com/admin/update_groups/${selectedGroup.id}`, groupData, {
+      const res = await axios.put(`${API_URL}/admin/update_groups/${selectedGroup.id}`, groupData, {
         headers: { Authorization: token }
       });
 
@@ -521,7 +518,7 @@ const TeamChat = () => {
         members: [...selectedMembers, user.id],
         createdBy: user.id
       };
-      const res = await axios.post("https://project-management-sodtware-backend-end.onrender.com/groups/create", groupData, {
+      const res = await axios.post(`${API_URL}/groups/create`, groupData, {
         headers: { Authorization: token }
       });
 
@@ -551,7 +548,7 @@ const TeamChat = () => {
   const fetchUsers = async () => {
     const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
     try {
-      const res = await axios.get("https://project-management-sodtware-backend-end.onrender.com/employeelists", {
+      const res = await axios.get(`${API_URL}/employeelists`, {
         headers: {
           Authorization: `${token}`,
           "Content-Type": "application/json"

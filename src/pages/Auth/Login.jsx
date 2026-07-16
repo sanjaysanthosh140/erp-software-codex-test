@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState } from "react";
 import {
   Box,
@@ -43,7 +44,7 @@ const Login = () => {
   const handle_submit = async () => {
     try {
       if (formData.email && formData.password) {
-        const res = await axios.post("https://project-management-sodtware-backend-end.onrender.com/login", formData, {
+        const res = await axios.post(`${API_URL}/login`, formData, {
           headers: { "Content-Type": "application/json" },
         });
         if (res.status === 200) {

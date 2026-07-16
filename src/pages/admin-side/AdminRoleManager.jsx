@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState } from "react";
 import {
   Box,
@@ -112,7 +113,7 @@ const AdminRoleManager = () => {
   const handleSubmit = async () => {
     try {
       const res = await axios.post(
-        "https://project-management-sodtware-backend-end.onrender.com/admin/verify_authorization",
+        `${API_URL}/admin/verify_authorization`,
         formData,
         {
           headers: {

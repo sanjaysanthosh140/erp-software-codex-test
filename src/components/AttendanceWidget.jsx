@@ -3,6 +3,7 @@
  * 4 dark-navy stat cards: Date | Time | Attendance Status | Active Projects
  * All API / state logic preserved exactly.
  */
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, Button, Chip } from "@mui/material";
 import { Business, FreeBreakfast, Home } from "@mui/icons-material";
@@ -67,7 +68,7 @@ const AttendanceWidget = ({ currentUserId }) => {
   useEffect(() => {
     if (!currentUserId) return;
     axios
-      .get("https://project-management-sodtware-backend-end.onrender.com/employee_included_proj", {
+      .get(`${API_URL}/employee_included_proj`, {
         headers: { Authorization: `${currentUserId}`, "Content-Type": "application/json" },
       })
       .then((res) => {
@@ -110,7 +111,7 @@ const AttendanceWidget = ({ currentUserId }) => {
     const token = localStorage.getItem("token");
     try {
       await axios.post(
-        "https://project-management-sodtware-backend-end.onrender.com/admin/attendance",
+        `${API_URL}/admin/attendance`,
         { action },
         { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );

@@ -8,6 +8,7 @@
  *
  * UserReportsList is rendered inside WorkReportForm now — NOT separately here.
  */
+const API_URL = import.meta.env.VITE_API_URL;
 import React from "react";
 import { Box, Typography, Divider, Badge, IconButton, TextField, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
@@ -86,7 +87,6 @@ const EmployeeCockpit = () => {
   const [logoutConfirmOpen, setLogoutConfirmOpen] = React.useState(false);
   const [openEverything, setOpenEverything] = React.useState(false);
   const [openFloor, setOpenFloor] = React.useState(false);
-  const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com";
   const PRIMARY = "#0f172a";
   const SECONDARY = "rgba(15,23,42,0.6)";
 
@@ -113,7 +113,7 @@ const EmployeeCockpit = () => {
     try {
       if (token) {
         await axios.post(
-          "https://project-management-sodtware-backend-end.onrender.com/admin/attendance",
+          `${API_URL}/admin/attendance`,
           { action: "PUNCH_OUT" },
           {
             headers: {
@@ -184,7 +184,7 @@ const EmployeeCockpit = () => {
       try {
         if (token) {
           const res = await axios.get(
-            "https://project-management-sodtware-backend-end.onrender.com/employee_profile",
+            `${API_URL}/employee_profile`,
             {
               headers: {
                 Authorization: `${token}`,
@@ -233,7 +233,7 @@ const EmployeeCockpit = () => {
     setTasksLoading(true);
     try {
       const res = await axios.get(
-        `${API_BASE_URL}/admin/hr_assigned_tasks?headId=${effectiveHeadId}`,
+        `${API_URL}/admin/hr_assigned_tasks?headId=${effectiveHeadId}`,
         {
           headers: {
             Authorization: `${token}`,
@@ -278,7 +278,7 @@ const EmployeeCockpit = () => {
         status,
       };
       await axios.put(
-        `${API_BASE_URL}/admin/hr_assigned_tasks/${task._id}`,
+        `${API_URL}/admin/hr_assigned_tasks/${task._id}`,
         payload,
       );
       setHeadTasks((prev) => prev.map((t) => (t._id === task._id ? { ...t, status } : t)));

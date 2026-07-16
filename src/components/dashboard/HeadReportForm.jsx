@@ -1,9 +1,8 @@
 /**
- * WorkReportForm.jsx — Figma redesign.
- * Left: textarea for new report. Right: live list of submitted reports (UserReportsList inlined).
- * All API logic preserved exactly.
+ * HeadReportForm.jsx — Head Report Submission Form
+ * Similar to WorkReportForm but for Head-side report submission.
+ * Submits to: /admin/reports endpoint
  */
-const API_URL = import.meta.env.VITE_API_URL
 import {
   Box,
   Typography,
@@ -23,14 +22,10 @@ import {
 } from "@mui/material";
 import { useState, useEffect } from "react";
 import SendIcon from "@mui/icons-material/Send";
-import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import axios from "axios";
-import { useToast } from "../../context/ToastContext";
 
 const PRIMARY = "#0f172a";
 const SECONDARY = "#64748b";
@@ -46,7 +41,7 @@ const toLocalISO = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
+const HeadReportForm = ({ profile }) => {
   const [report, setReport] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -58,30 +53,35 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reportToDelete, setReportToDelete] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const username = profile?.name || "";
   const userId = profile?._id || profile?.id || "";
+  const headId = profile?._id || profile?.id || "";
 
-  const toast = useToast();
-  const showToast = (msg, type) =>
-    toast?.showToast ? toast.showToast(msg, type) : console.log(msg, type);
+  const showToast = (msg, type) => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-  /* ── Fetch reports for this user ── */
+  /* ── Fetch reports for this head ── */
   const fetchReports = async () => {
-    if (!userId) return;
+    if (!headId) return;
     setReportsLoading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       const res = await axios.get(
-  `${API_URL}/admin/reports`,
+        "http://localhost:8080/admin/head_reports",
         { headers: { Authorization: `${token}` } }
       );
-      const userReports = res.data
-        .filter((r) => r.userID === userId || r.userId === userId)
+      // Filter for head's own reports
+      
+      const headReports = res.data
+        // .filter((r) => r.headId === headId || r.userId === headId)
         .sort((a, b) => new Date(b.date) - new Date(a.date));
-      setReports(userReports);
+      setReports(headReports);
     } catch (err) {
-      console.error("Failed to fetch reports", err);
+      console.error("Failed to fetch head reports", err);
     } finally {
       setReportsLoading(false);
     }
@@ -89,26 +89,26 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
 
   useEffect(() => {
     fetchReports();
-  }, [userId]);
+  }, [headId]);
 
-  /* ── Submit new report (API preserved) ── */
+  /* ── Submit new report ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!report.trim()) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      if (report && deptId) {
+      const token = localStorage.getItem("adminToken");
+      if (report) {
         const reportData = {
-          userID: userId,
+          headId,
+          userId: headId,
           username,
           desc: report,
-          deptId,
-          type: "report",
+          type: "head-report",
           date: toLocalISO(new Date()),
         };
         await axios.post(
-          `${API_URL}/admin/Daily_reports`,
+          "http://localhost:8080/admin/Daily_reports",
           reportData,
           {
             headers: {
@@ -121,8 +121,7 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
       }
       showToast("Report submitted successfully", "success");
       setReport("");
-      if (onReportSubmitted) onReportSubmitted();
-      fetchReports(); // refresh right panel
+      fetchReports();
     } catch (error) {
       console.error("Failed to submit report", error);
       showToast("Failed to submit report", "error");
@@ -131,44 +130,23 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
     }
   };
 
-  /* ── Edit / update ── */
-  const handleEdit = (r) => {
-    setEditingId(r._id || r.id);
-    setEditDesc(r.desc);
-  };
-  const handleCancelEdit = () => { setEditingId(null); setEditDesc(""); };
-  const handleUpdate = async () => {
-    if (!editDesc.trim()) return;
-    setActionLoading(true);
-    try {
-      const token = localStorage.getItem("token");
-      await axios.put(
-        `${API_URL}/admin/update_report/${editingId}`,
-        { desc: editDesc },
-        { headers: { Authorization: `${token}` } }
-      );
-      showToast("Report updated successfully", "success");
-      setEditingId(null);
-      fetchReports();
-    } catch (err) {
-      console.error("Failed to update report", err);
-      showToast("Failed to update report", "error");
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   /* ── Delete ── */
-  const handleDeleteClick = (id) => { setReportToDelete(id); setDeleteDialogOpen(true); };
-  const handleDeleteCancel = () => { setDeleteDialogOpen(false); setReportToDelete(null); };
+  const handleDeleteClick = (id) => {
+    setReportToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+  const handleDeleteCancel = () => {
+    setDeleteDialogOpen(false);
+    setReportToDelete(null);
+  };
   const handleDeleteConfirm = async () => {
     if (!reportToDelete) return;
     setActionLoading(true);
     setDeleteDialogOpen(false);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("adminToken");
       await axios.delete(
-        `${API_URL}/admin/delete_report/${reportToDelete}`,
+        `https://project-management-sodtware-backend-end.onrender.com/admin/delete_report/${reportToDelete}`,
         { headers: { Authorization: `${token}` } }
       );
       showToast("Report deleted successfully", "success");
@@ -184,6 +162,26 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
 
   return (
     <Box component="form" onSubmit={handleSubmit}>
+      {/* Toast notification */}
+      {toast && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 20,
+            right: 20,
+            zIndex: 9999,
+            bgcolor: toast.type === "success" ? "#10b981" : "#ef4444",
+            color: "#fff",
+            px: 3,
+            py: 2,
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          }}
+        >
+          {toast.msg}
+        </Box>
+      )}
+
       {/* Section header */}
       <Typography
         sx={{
@@ -194,7 +192,7 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
           mb: { xs: 2, sm: 2.5 },
         }}
       >
-        Daily Work Report
+        Head Daily Report
       </Typography>
 
       {/* ── Two-column layout: textarea | reports list ── */}
@@ -213,7 +211,7 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
             multiline
             rows={5}
             variant="outlined"
-            placeholder="What did you accomplish today? Any blockers?"
+            placeholder="Summarize your head duties, decisions, and strategic updates..."
             value={report}
             onChange={(e) => setReport(e.target.value)}
             sx={{
@@ -261,7 +259,9 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
                 py: 0.9,
                 textTransform: "none",
                 boxShadow: "0 4px 14px rgba(15,42,100,0.25)",
-                "&:hover": { background: "linear-gradient(135deg,#0f1f42 0%,#0a2a6e 100%)" },
+                "&:hover": {
+                  background: "linear-gradient(135deg,#0f1f42 0%,#0a2a6e 100%)",
+                },
                 "&.Mui-disabled": {
                   background: alpha(SECONDARY, 0.1),
                   color: alpha(SECONDARY, 0.3),
@@ -341,83 +341,31 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
                         }}
                       />
 
-                      {/* Actions */}
-                      {isEditing ? (
-                        <Stack direction="row" spacing={0.3}>
-                          <IconButton
-                            size="small"
-                            onClick={handleUpdate}
-                            disabled={actionLoading}
-                            sx={{ color: "#10b981" }}
-                          >
-                            <CheckIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={handleCancelEdit}
-                            disabled={actionLoading}
-                            sx={{ color: "#ef4444" }}
-                          >
-                            <CloseIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Stack>
-                      ) : (
-                        <Stack direction="row" spacing={0.3}>
-                          {/* <IconButton */}
-                          {/* size="small" */}
-                          {/* onClick={() => handleEdit(r)} */}
-                          {/* disabled={actionLoading} */}
-                          {/* sx={{ color: SECONDARY, opacity: 0.7 }} */}
-                          {/* > */}
-                          {/* <EditIcon sx={{ fontSize: 15 }} /> */}
-                          {/* </IconButton> */}
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteClick(r._id || r.id)}
-                            disabled={actionLoading}
-                            sx={{ color: "#ef4444", opacity: 0.75 }}
-                          >
-                            <DeleteIcon sx={{ fontSize: 15 }} />
-                          </IconButton>
-                        </Stack>
-                      )}
+                      {/* Delete Action */}
+                      <Stack direction="row" spacing={0.3}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(r._id || r.id)}
+                          disabled={actionLoading}
+                          sx={{ color: "#ef4444", opacity: 0.75 }}
+                        >
+                          <DeleteIcon sx={{ fontSize: 15 }} />
+                        </IconButton>
+                      </Stack>
                     </Box>
 
-                    {isEditing ? (
-                      <TextField
-                        fullWidth
-                        multiline
-                        minRows={2}
-                        value={editDesc}
-                        onChange={(e) => setEditDesc(e.target.value)}
-                        autoFocus
-                        variant="standard"
-                        InputProps={{ disableUnderline: true }}
-                        sx={{
-                          "& .MuiInputBase-root": {
-                            fontSize: "0.82rem",
-                            lineHeight: 1.6,
-                            color: "#000",
-                            fontWeight: 500,
-                            p: 1,
-                            bgcolor: "rgba(255,255,255,0.5)",
-                            borderRadius: "8px",
-                          },
-                        }}
-                      />
-                    ) : (
-                      <Typography
-                        sx={{
-                          color: PRIMARY,
-                          fontSize: "0.83rem",
-                          lineHeight: 1.6,
-                          fontWeight: 500,
-                          whiteSpace: "pre-wrap",
-                        }}
-                      >
-                        {r.desc}
-                      </Typography>
-                    )}
+                    {/* Report text */}
+                    <Typography
+                      sx={{
+                        fontSize: "0.82rem",
+                        lineHeight: 1.6,
+                        color: "#1e293b",
+                        fontWeight: 500,
+                        mb: 0.5,
+                      }}
+                    >
+                      {r.desc}
+                    </Typography>
                   </Paper>
                 );
               })}
@@ -426,64 +374,27 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
         </Box>
       </Box>
 
-
-
-      {/* ── Delete confirmation dialog ── */}
+      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialogOpen}
         onClose={handleDeleteCancel}
-        PaperProps={{
-          sx: {
-            width: "340px",
-            maxWidth: "90vw",
-            borderRadius: "20px",
-            background: "rgba(255,255,255,0.97)",
-            backdropFilter: "blur(24px)",
-            p: 1,
-          },
-        }}
+        aria-labelledby="delete-dialog-title"
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
-          <WarningAmberIcon sx={{ color: "#f59e0b" }} />
-          <Typography sx={{ fontWeight: 800, fontSize: "1.05rem", color: PRIMARY }}>
-            Confirm Deletion
-          </Typography>
-        </DialogTitle>
-        <DialogContent sx={{ pb: 3 }}>
-          <DialogContentText
-            sx={{ color: SECONDARY, fontWeight: 500, fontSize: "0.88rem" }}
-          >
-            Are you sure you want to permanently delete this report? This action
-            cannot be undone.
+        <DialogTitle id="delete-dialog-title">Delete Report?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this report? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button
-            onClick={handleDeleteCancel}
-            sx={{
-              fontWeight: 700,
-              color: SECONDARY,
-              textTransform: "none",
-              borderRadius: "10px",
-              px: 3,
-            }}
-          >
-            Cancel
-          </Button>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>Cancel</Button>
           <Button
             onClick={handleDeleteConfirm}
+            disabled={actionLoading}
+            color="error"
             variant="contained"
-            sx={{
-              bgcolor: "#ef4444",
-              "&:hover": { bgcolor: "#dc2626" },
-              fontWeight: 700,
-              textTransform: "none",
-              borderRadius: "10px",
-              px: 4,
-              boxShadow: "0 4px 12px rgba(239,68,68,0.22)",
-            }}
           >
-            Delete
+            {actionLoading ? "Deleting..." : "Delete"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -491,4 +402,4 @@ const WorkReportForm = ({ deptId, profile, onReportSubmitted }) => {
   );
 };
 
-export default WorkReportForm;
+export default HeadReportForm;

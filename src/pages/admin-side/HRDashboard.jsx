@@ -1,3 +1,4 @@
+const API_URL = import.meta.env.VITE_API_URL;
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -93,8 +94,6 @@ const headTaskSourceChipLabel = (task) => {
   }
   return "From: HR (legacy)";
 };
-
-const API_BASE_URL = "https://project-management-sodtware-backend-end.onrender.com"
 
 // --- DM Projects Helpers ---
 const HR_HYBRID_DEPTS = ["Content Writing", "Video Production", "Editing", "Graphic Design", "DM"];
@@ -230,7 +229,7 @@ const HRDashboard = () => {
 
   const fetchProjects = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/projects/get_projects`);
+      const res = await axios.get(`${API_URL}/projects/get_projects`);
       setProjectsCount(res.data.length);
     } catch (err) {
       console.error("Error fetching projects:", err);
@@ -239,7 +238,7 @@ const HRDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/admin/users`);
+      const res = await axios.get(`${API_URL}/admin/users`);
       setUsers(res.data);
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -248,7 +247,7 @@ const HRDashboard = () => {
 
   const fetchAdmins = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/admin/get_admins`);
+      const res = await axios.get(`${API_URL}/admin/get_admins`);
       setAdmins(res.data);
     } catch (err) {
       console.error("Error fetching admins:", err);
@@ -257,7 +256,7 @@ const HRDashboard = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/admin/departments`);
+      const res = await axios.get(`${API_URL}/admin/departments`);
       setDepartments(res.data);
     } catch (err) {
       console.error("Error fetching departments:", err);
@@ -266,8 +265,9 @@ const HRDashboard = () => {
 
   const fetchReports = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/admin/reports`);
+      const res = await axios.get(`${API_URL}/admin/reports`);
       setReports(res.data);
+      console.log("reports from hr_dash",res.data);
     } catch (err) {
       console.error("Error fetching reports:", err);
     }
@@ -276,10 +276,9 @@ const HRDashboard = () => {
   const fetchLogs = async () => {
     try {
       const token = localStorage.getItem("adminToken");
-      const res = await axios.get(`${API_BASE_URL}/admin/employe_log`, {
+      const res = await axios.get(`${API_URL}/admin/employe_log`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log("logs", res.data);
       setLogs(res.data);
       console.log(res);
     } catch (err) {
@@ -289,7 +288,7 @@ const HRDashboard = () => {
 
   const fetchHeadTasks = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/admin/hr_assigned_tasks`);
+      const res = await axios.get(`${API_URL}/admin/hr_assigned_tasks`);
       setHeadTasks(res.data || []);
       console.log("Head tasks:", res.data);
     } catch (err) {
@@ -299,7 +298,7 @@ const HRDashboard = () => {
 
   const fetchDmProjects = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/admin/simple_custom_projects`);
+      const res = await axios.get(`${API_URL}/admin/simple_custom_projects`);
       setDmProjects(res.data || []);
     } catch (err) {
       console.error("Error fetching DM projects:", err);
@@ -308,7 +307,7 @@ const HRDashboard = () => {
 
 const fetchEmployees = async () => {
   try {
-    const res = await axios.get(`${API_BASE_URL}/employeelists`, {
+    const res = await axios.get(`${API_URL}/employeelists`, {
       headers: {
         Authorization: localStorage.getItem("adminToken"),
       },
@@ -359,13 +358,15 @@ const fetchEmployees = async () => {
     setOpenResponsibleDialog(true);
   };
 
-  const handleUserSubmit = async () => {
+
+  //  user submit
+  const handleUserSubmit = async () => {                                       
     try {
       if (editingUser) {
         const { password, ...updateData } = userForm;
-        await axios.put(`${API_BASE_URL}/admin/updateEmploye/${editingUser._id}`, updateData);
+        await axios.put(`${API_URL}/admin/updateEmploye/${editingUser._id}`, updateData);
       } else {
-        await axios.post(`${API_BASE_URL}/admin/employes`, userForm);
+        await axios.post(`${API_URL}/admin/employes`, userForm);
         setAlertMessage(`User ${userForm.name} added successfully`);
         setAlertOpen(true);
       }
@@ -379,9 +380,9 @@ const fetchEmployees = async () => {
   const handlePasswordSubmit = async () => {
     try {
       if (passwordForm.accountType === "admin") {
-        await axios.put(`${API_BASE_URL}/admin/updatePassword_admin`, passwordForm);
+        await axios.put(`${API_URL}/admin/updatePassword_admin`, passwordForm);
       } else {
-        await axios.post(`${API_BASE_URL}/admin/updatePassword`, passwordForm);
+        await axios.post(`${API_URL}/admin/updatePassword`, passwordForm);
       }
       setAlertMessage(`Password updated for ${passwordForm.email}`);
       setAlertOpen(true);
@@ -396,10 +397,10 @@ const fetchEmployees = async () => {
       const payload = { ...responsibleForm, role: responsibleForm.post, active: true };
       delete payload.post;
       if (editingAdmin) {
-        await axios.put(`${API_BASE_URL}/admin/update_admin/${editingAdmin._id}`, payload);
+        await axios.put(`${API_URL}/admin/update_admin/${editingAdmin._id}`, payload);
         setAlertMessage(`Head User ${responsibleForm.name} updated successfully`);
       } else {
-        await axios.post(`${API_BASE_URL}/admin/add_admins`, payload);
+        await axios.post(`${API_URL}/admin/add_admins`, payload);
         setAlertMessage(`Head User ${responsibleForm.name} added successfully`);
       }
       setAlertOpen(true);
@@ -421,9 +422,9 @@ const fetchEmployees = async () => {
     try {
       const payload = { ...deptForm, color: deptForm.color || "#ffff" };
       if (editingDept) {
-        await axios.put(`${API_BASE_URL}/admin/Editdepartments/${editingDept._id}`, payload);
+        await axios.put(`${API_URL}/admin/Editdepartments/${editingDept._id}`, payload);
       } else {
-        await axios.post(`${API_BASE_URL}/admin/addDep`, payload);
+        await axios.post(`${API_URL}/admin/addDep`, payload);
       }
       fetchDepartments();
       setOpenDeptDialog(false);
@@ -436,7 +437,7 @@ const fetchEmployees = async () => {
   const confirmDeleteUser = async () => {
     if (!userToDelete) return;
     try {
-      await axios.delete(`${API_BASE_URL}/admin/deleteEmp/${userToDelete._id}`);
+      await axios.delete(`${API_URL}/admin/deleteEmp/${userToDelete._id}`);
       setUsers(users.filter((u) => u._id !== userToDelete._id));
       setAlertMessage(`User deleted successfully`);
       setAlertOpen(true);
@@ -451,7 +452,7 @@ const fetchEmployees = async () => {
     if (!adminToDelete) return;
     try {
       let id = adminToDelete._id;
-      await axios.delete(`${API_BASE_URL}/admin/delete_admin/${id}`);
+      await axios.delete(`${API_URL}/admin/delete_admin/${id}`);
       fetchAdmins();
       setAlertMessage(`Head User deleted successfully`);
       setAlertOpen(true);
@@ -464,7 +465,7 @@ const fetchEmployees = async () => {
 
   const handleDeleteDept = async (deptId) => {
     try {
-      await axios.delete(`${API_BASE_URL}/admin/deleteDept/${deptId}`);
+      await axios.delete(`${API_URL}/admin/deleteDept/${deptId}`);
       fetchDepartments();
     } catch (err) {
       console.error("Error deleting dept:", err);
@@ -495,10 +496,10 @@ const fetchEmployees = async () => {
     };
     try {
       if (editingHeadTask) {
-        await axios.put(`${API_BASE_URL}/admin/hr_assigned_tasks/${editingHeadTask._id}`, payload);
+        await axios.put(`${API_URL}/admin/hr_assigned_tasks/${editingHeadTask._id}`, payload);
         setAlertMessage("Head task updated successfully");
       } else {
-        await axios.post(`${API_BASE_URL}/admin/hr_assigned_tasks`, payload);
+        await axios.post(`${API_URL}/admin/hr_assigned_tasks`, payload);
         setAlertMessage("Head task created successfully");
       }
       setAlertOpen(true);
@@ -522,7 +523,7 @@ const fetchEmployees = async () => {
 
   const handleDeleteHeadTask = async (taskId) => {
     try {
-      await axios.delete(`${API_BASE_URL}/admin/hr_assigned_tasks/${taskId}`);
+      await axios.delete(`${API_URL}/admin/hr_assigned_tasks/${taskId}`);
       setAlertMessage("Head task deleted successfully");
       setAlertOpen(true);
       fetchHeadTasks();
@@ -533,7 +534,7 @@ const fetchEmployees = async () => {
 
   const handleUpdateTaskStatus = async (task, newStatus) => {
     try {
-      await axios.put(`${API_BASE_URL}/admin/hr_assigned_tasks/${task._id}`, {
+      await axios.put(`${API_URL}/admin/hr_assigned_tasks/${task._id}`, {
         ...task,
         status: newStatus,
       });
@@ -788,6 +789,8 @@ const fetchEmployees = async () => {
                 <ReportManager
                   key="reports"
                   reports={reports}
+                  users={users}
+                  departments={departments}
                   reportDate={reportDate}
                   setReportDate={setReportDate}
                   reportDeptFilter={reportDeptFilter}
