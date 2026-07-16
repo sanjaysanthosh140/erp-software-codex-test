@@ -12,7 +12,7 @@ import { ToastProvider } from "./context/ToastContext";
 import GlobalNotifications from "./components/GlobalNotifications";
 import MainLayout from "./components/layout/MainLayout";
 import Login from "./pages/Auth/Login";
-import Signup from "./pages/Auth/Signup";
+// import Signup from "./pages/Auth/Signup";
 import Landing from "./pages/Landing";
 import UserProfile from "./pages/User/UserProfile";
 // import Notifications from "./pages/Notifications";
