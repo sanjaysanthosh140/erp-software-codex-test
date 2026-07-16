@@ -10,7 +10,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import theme from "./theme";
 import { ToastProvider } from "./context/ToastContext";
 import GlobalNotifications from "./components/GlobalNotifications";
-import MainLayout from "./components/layout/MainLayout";
+import MainLayout from "./components/dashboard/layout/MainLayout";
 import Login from "./pages/Auth/Login";
 // import Signup from "./pages/Auth/Signup";
 import Landing from "./pages/Landing";
@@ -27,7 +27,7 @@ import HeadBillings from "./pages/admin-side/HeadBillings";
 import CustomProjectsList from "./pages/admin-side/CustomProjectsList";
 import CustomProjectDetail from "./pages/admin-side/CustomProjectDetail";
 
-import EmployeeLayout from "./components/layout/EmployeeLayout";
+import EmployeeLayout from "./components/dashboard/layout/EmployeeLayout";
 import EmployeeCockpit from "./pages/Employee/EmployeeCockpit";
 import AssignedProjectsList from "./pages/Employee/AssignedProjectsList";
 import ProjectDetailView from "./pages/Employee/ProjectDetailView";
@@ -68,7 +68,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+            {/* <Route path="/signup" element={<Signup />} /> */}
             <Route path="/app" element={<MainLayout />}>
               <Route index element={<Navigate to="/app/gateway" replace />} />
               <Route path="gateway" element={<DepartmentGateway />} />

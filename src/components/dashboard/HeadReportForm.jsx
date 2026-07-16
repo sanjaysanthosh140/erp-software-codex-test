@@ -3,7 +3,7 @@
  * Similar to WorkReportForm but for Head-side report submission.
  * Submits to: /admin/reports endpoint
  */
-const API_URL = impot.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL;
 import {
   Box,
   Typography,

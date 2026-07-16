@@ -23,7 +23,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import SettingsIcon from "@mui/icons-material/Settings";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useToast } from "../../context/ToastContext";
+import { useToast } from "../../../context/ToastContext";
 
 const menuItems = [
   { text: "Dashboard", icon: <DashboardIcon />, path: "/app/gateway" },
