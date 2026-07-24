@@ -47,6 +47,7 @@ import ReportManager from "./components/ReportManager";
 import AttendanceManager from "./components/AttendanceManager";
 import DashboardDialogs from "./components/DashboardDialogs";
 import ProductionActivityLogger from "./ProductionActivityLogger";
+import HeadReportForm from "../../components/dashboard/HeadReportForm";
 
 // Styles & Constants
 import {
@@ -90,13 +91,21 @@ const headTaskSourceChipLabel = (task) => {
       : "From: CEO / Management";
   }
   if (r === "hr") {
-    return task.assignedByName ? `From: HR · ${task.assignedByName}` : "From: HR";
+    return task.assignedByName
+      ? `From: HR · ${task.assignedByName}`
+      : "From: HR";
   }
   return "From: HR (legacy)";
 };
 
 // --- DM Projects Helpers ---
-const HR_HYBRID_DEPTS = ["Content Writing", "Video Production", "Editing", "Graphic Design", "DM"];
+const HR_HYBRID_DEPTS = [
+  "Content Writing",
+  "Video Production",
+  "Editing",
+  "Graphic Design",
+  "DM",
+];
 
 const HRDashboard = () => {
   const navigate = useNavigate();
@@ -190,6 +199,28 @@ const HRDashboard = () => {
   const [attendanceDate, setAttendanceDate] = useState("");
   const [attendanceDeptFilter, setAttendanceDeptFilter] = useState("ALL");
 
+  const currentAdminProfile = (() => {
+    const storedName = localStorage.getItem("adminName") || "HR";
+    const storedId = localStorage.getItem("adminId") || "";
+    const token = localStorage.getItem("adminToken");
+
+    if (!token) {
+      return { name: storedName, _id: storedId, id: storedId };
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const id = payload.id || payload._id || storedId;
+      return {
+        name: payload.name || payload.email || storedName,
+        _id: id,
+        id,
+      };
+    } catch {
+      return { name: storedName, _id: storedId, id: storedId };
+    }
+  })();
+
   // --- Initial Data Fetch ---
   useEffect(() => {
     const loadData = async () => {
@@ -211,7 +242,7 @@ const HRDashboard = () => {
         fetchProjects(),
         fetchHeadTasks(),
         fetchDmProjects(),
-        fetchEmployees()
+        fetchEmployees(),
       ]);
       setLoading(false);
     };
@@ -238,7 +269,13 @@ const HRDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const res = await axios.get(`${API_URL}/admin/users`);
+      const res = await axios.get(`${API_URL}/employeelists`, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: localStorage.getItem("adminToken")
+        },
+      });
+      console.log("users",res.data)
       setUsers(res.data);
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -267,7 +304,7 @@ const HRDashboard = () => {
     try {
       const res = await axios.get(`${API_URL}/admin/reports`);
       setReports(res.data);
-      console.log("reports from hr_dash",res.data);
+      console.log("reports from hr_dash", res.data);
     } catch (err) {
       console.error("Error fetching reports:", err);
     }
@@ -305,20 +342,20 @@ const HRDashboard = () => {
     }
   };
 
-const fetchEmployees = async () => {
-  try {
-    const res = await axios.get(`${API_URL}/employeelists`, {
-      headers: {
-        Authorization: localStorage.getItem("adminToken"),
-      },
-    });
-    console.log("employee data for tasks", res.data);
-    setEmployees(res.data || []);
-  } catch (error) {
-    console.error("Error fetching employees:", error);
-    setEmployees([]);
-  }
-};
+  const fetchEmployees = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/employeelists`, {
+        headers: {
+          Authorization: localStorage.getItem("adminToken"),
+        },
+      });
+      console.log("employee data for tasks", res.data);
+      setEmployees(res.data || []);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      setEmployees([]);
+    }
+  };
   // --- Handlers ---
   const handleTabChange = (e, newValue) => {
     if (newValue === 4) {
@@ -333,7 +370,7 @@ const fetchEmployees = async () => {
     setUserForm(
       user
         ? { ...user }
-        : { name: "", email: "", department: "", password: "", active: true }
+        : { name: "", email: "", department: "", password: "", active: true },
     );
     setOpenUserDialog(true);
   };
@@ -353,18 +390,20 @@ const fetchEmployees = async () => {
     setResponsibleForm(
       admin
         ? { ...admin, post: admin.role || "" }
-        : { name: "", email: "", post: "", department: "", password: "" }
+        : { name: "", email: "", post: "", department: "", password: "" },
     );
     setOpenResponsibleDialog(true);
   };
 
-
   //  user submit
-  const handleUserSubmit = async () => {                                       
+  const handleUserSubmit = async () => {
     try {
       if (editingUser) {
         const { password, ...updateData } = userForm;
-        await axios.put(`${API_URL}/admin/updateEmploye/${editingUser._id}`, updateData);
+        await axios.put(
+          `${API_URL}/admin/updateEmploye/${editingUser._id}`,
+          updateData,
+        );
       } else {
         await axios.post(`${API_URL}/admin/employes`, userForm);
         setAlertMessage(`User ${userForm.name} added successfully`);
@@ -394,17 +433,26 @@ const fetchEmployees = async () => {
 
   const handleResponsibleSubmit = async () => {
     try {
-      const payload = { ...responsibleForm, role: responsibleForm.post, active: true };
+      const payload = {
+        ...responsibleForm,
+        role: responsibleForm.post,
+        active: true,
+      };
       delete payload.post;
       if (editingAdmin) {
-        await axios.put(`${API_URL}/admin/update_admin/${editingAdmin._id}`, payload);
-        setAlertMessage(`Head User ${responsibleForm.name} updated successfully`);
+        await axios.put(
+          `${API_URL}/admin/update_admin/${editingAdmin._id}`,
+          payload,
+        );
+        setAlertMessage(
+          `Head User ${responsibleForm.name} updated successfully`,
+        );
       } else {
         await axios.post(`${API_URL}/admin/add_admins`, payload);
         setAlertMessage(`Head User ${responsibleForm.name} added successfully`);
       }
       setAlertOpen(true);
-      fetchAdmins()
+      fetchAdmins();
       setOpenResponsibleDialog(false);
       setResponsibleForm({
         name: "",
@@ -422,7 +470,10 @@ const fetchEmployees = async () => {
     try {
       const payload = { ...deptForm, color: deptForm.color || "#ffff" };
       if (editingDept) {
-        await axios.put(`${API_URL}/admin/Editdepartments/${editingDept._id}`, payload);
+        await axios.put(
+          `${API_URL}/admin/Editdepartments/${editingDept._id}`,
+          payload,
+        );
       } else {
         await axios.post(`${API_URL}/admin/addDep`, payload);
       }
@@ -432,7 +483,6 @@ const fetchEmployees = async () => {
       console.error("Error saving department:", err);
     }
   };
-
 
   const confirmDeleteUser = async () => {
     if (!userToDelete) return;
@@ -484,7 +534,8 @@ const fetchEmployees = async () => {
   };
 
   const handleHeadTaskSubmit = async () => {
-    if (!headTaskForm.headId || !headTaskForm.task || !headTaskForm.deadline) return;
+    if (!headTaskForm.headId || !headTaskForm.task || !headTaskForm.deadline)
+      return;
     const payload = {
       headId: headTaskForm.headId,
       admin: localStorage.getItem("adminRole"),
@@ -496,7 +547,10 @@ const fetchEmployees = async () => {
     };
     try {
       if (editingHeadTask) {
-        await axios.put(`${API_URL}/admin/hr_assigned_tasks/${editingHeadTask._id}`, payload);
+        await axios.put(
+          `${API_URL}/admin/hr_assigned_tasks/${editingHeadTask._id}`,
+          payload,
+        );
         setAlertMessage("Head task updated successfully");
       } else {
         await axios.post(`${API_URL}/admin/hr_assigned_tasks`, payload);
@@ -516,7 +570,9 @@ const fetchEmployees = async () => {
       headId: task.headId || "",
       task: task.title || task.task || "",
       priority: task.priority || "Medium",
-      assignedDate: task.assignedDate ? toLocalISO(task.assignedDate) : toLocalISO(new Date()),
+      assignedDate: task.assignedDate
+        ? toLocalISO(task.assignedDate)
+        : toLocalISO(new Date()),
       deadline: task.deadline ? toLocalISO(task.deadline) : "",
     });
   };
@@ -557,36 +613,61 @@ const fetchEmployees = async () => {
           return false;
         }
       })
-      .map((r) => r.author || r.userId || r.userName)
+      .map((r) => r.author || r.userId || r.userName),
   );
 
-  const pendingReportsCount = Math.max(0, users.length - uniqueSubmittersToday.size);
+  const pendingReportsCount = Math.max(
+    0,
+    users.length - uniqueSubmittersToday.size,
+  );
 
   const stats = [
-    { title: "Total Employees", value: users.length, icon: PeopleIcon, color: "#fff" },
+    {
+      title: "Total Employees",
+      value: users.length,
+      icon: PeopleIcon,
+      color: "#fff",
+    },
     { title: "Active Now", value: 0, icon: CheckCircleIcon, color: "#fff" },
-    { title: "Departments", value: departments.length, icon: FolderIcon, color: "#fff" },
-    { title: "Active Projects", value: projectsCount, icon: AssessmentIcon, color: "#fff" },
+    {
+      title: "Departments",
+      value: departments.length,
+      icon: FolderIcon,
+      color: "#fff",
+    },
+    {
+      title: "Active Projects",
+      value: projectsCount,
+      icon: AssessmentIcon,
+      color: "#fff",
+    },
   ];
 
   const formatDepartment = (dept) => {
     if (!dept) return "";
     if (typeof dept === "string") return dept;
-    return dept.title || dept.name || dept.department || dept.departmentName || "";
+    return (
+      dept.title || dept.name || dept.department || dept.departmentName || ""
+    );
   };
 
   const normalizedDepartmentOptions = Array.from(
     new Set(
-      departments
-        .map(formatDepartment)
-        .filter(Boolean)
-        .map(normalizeDeptName),
+      departments.map(formatDepartment).filter(Boolean).map(normalizeDeptName),
     ),
   );
 
   if (loading) {
     return (
-      <Box sx={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: PRIMARY_BG }}>
+      <Box
+        sx={{
+          height: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: PRIMARY_BG,
+        }}
+      >
         <CircularProgress sx={{ color: "#38bdf8" }} />
       </Box>
     );
@@ -621,12 +702,31 @@ const fetchEmployees = async () => {
       >
         {/* Header Section */}
         <Fade in={true} timeout={800}>
-          <Box sx={{ mb: 1, pl: 1, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+          <Box
+            sx={{
+              mb: 1,
+              pl: 1,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+            }}
+          >
             <Box>
-              <Typography variant="h2" sx={{ fontWeight: 800, color: "#1f2937", fontSize: { xs: "1.8rem", md: "2.5rem" }, mb: 0.5 }}>
+              <Typography
+                variant="h2"
+                sx={{
+                  fontWeight: 800,
+                  color: "#1f2937",
+                  fontSize: { xs: "1.8rem", md: "2.5rem" },
+                  mb: 0.5,
+                }}
+              >
                 HR Workspace
               </Typography>
-              <Typography variant="body1" sx={{ color: "#64748b", fontWeight: 600 }}>
+              <Typography
+                variant="body1"
+                sx={{ color: "#64748b", fontWeight: 600 }}
+              >
                 Management Dashboard
               </Typography>
             </Box>
@@ -664,7 +764,16 @@ const fetchEmployees = async () => {
                 },
               }}
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
@@ -689,7 +798,13 @@ const fetchEmployees = async () => {
           }}
         >
           {/* Navigation Tabs */}
-          <Box sx={{ borderBottom: "1px solid rgba(0,0,0,0.05)", background: "rgba(255,255,255,0.4)", px: 2 }}>
+          <Box
+            sx={{
+              borderBottom: "1px solid rgba(0,0,0,0.05)",
+              background: "rgba(255,255,255,0.4)",
+              px: 2,
+            }}
+          >
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -702,9 +817,13 @@ const fetchEmployees = async () => {
                   color: "rgba(0,0,0,0.4)",
                   minHeight: 64,
                   transition: "all 0.3s ease",
-                  "&.Mui-selected": { color: "#38bdf8" }
+                  "&.Mui-selected": { color: "#38bdf8" },
                 },
-                "& .MuiTabs-indicator": { height: 4, borderRadius: "2px", background: "linear-gradient(90deg, #38bdf8, #818cf8)" }
+                "& .MuiTabs-indicator": {
+                  height: 4,
+                  borderRadius: "2px",
+                  background: "linear-gradient(90deg, #38bdf8, #818cf8)",
+                },
               }}
             >
               <Tab label="Employees" />
@@ -729,7 +848,10 @@ const fetchEmployees = async () => {
               overflowX: "hidden",
               pb: { xs: 2, md: 4 },
               "&::-webkit-scrollbar": { width: 8 },
-              "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: 6 },
+              "&::-webkit-scrollbar-thumb": {
+                backgroundColor: "#cbd5e1",
+                borderRadius: 6,
+              },
             }}
           >
             <AnimatePresence mode="wait">
@@ -754,8 +876,14 @@ const fetchEmployees = async () => {
                     setOpenResponsibleDialog(true);
                   }}
                   onEditUser={handleUserDialogOpen}
-                  onEditPassword={(user) => handlePasswordDialogOpen(user, "employee")}
-                  onDeleteUser={(user) => { setUserToDelete(user); setAdminToDelete(null); setOpenDeleteDialog(true); }}
+                  onEditPassword={(user) =>
+                    handlePasswordDialogOpen(user, "employee")
+                  }
+                  onDeleteUser={(user) => {
+                    setUserToDelete(user);
+                    setAdminToDelete(null);
+                    setOpenDeleteDialog(true);
+                  }}
                 />
               )}
               {tabValue === 5 && (
@@ -771,34 +899,57 @@ const fetchEmployees = async () => {
                   onAddEmployee={() => handleUserDialogOpen()}
                   onAddHead={() => handleAdminDialogOpen()}
                   onEditUser={handleAdminDialogOpen}
-                  onEditPassword={(admin) => handlePasswordDialogOpen(admin, "admin")}
-                  onDeleteUser={(admin) => { setAdminToDelete(admin); setUserToDelete(null); setOpenDeleteDialog(true); }}
+                  onEditPassword={(admin) =>
+                    handlePasswordDialogOpen(admin, "admin")
+                  }
+                  onDeleteUser={(admin) => {
+                    setAdminToDelete(admin);
+                    setUserToDelete(null);
+                    setOpenDeleteDialog(true);
+                  }}
                 />
               )}
               {tabValue === 1 && (
                 <DepartmentManager
                   key="depts"
                   departments={departments}
-                  onAddDepartment={() => { setEditingDept(null); setDeptForm({ id: "", title: "", color: "#ffff", description: "" }); setOpenDeptDialog(true); }}
-                  onEditDepartment={(dept) => { setEditingDept(dept); setDeptForm({ ...dept }); setOpenDeptDialog(true); }}
+                  onAddDepartment={() => {
+                    setEditingDept(null);
+                    setDeptForm({
+                      id: "",
+                      title: "",
+                      color: "#ffff",
+                      description: "",
+                    });
+                    setOpenDeptDialog(true);
+                  }}
+                  onEditDepartment={(dept) => {
+                    setEditingDept(dept);
+                    setDeptForm({ ...dept });
+                    setOpenDeptDialog(true);
+                  }}
                   onDeleteDepartment={handleDeleteDept}
                   getDeptColor={getDeptColor}
                 />
               )}
               {tabValue === 2 && (
-                <ReportManager
-                  key="reports"
-                  reports={reports}
-                  users={users}
-                  departments={departments}
-                  reportDate={reportDate}
-                  setReportDate={setReportDate}
-                  reportDeptFilter={reportDeptFilter}
-                  setReportDeptFilter={setReportDeptFilter}
-                  normalizedDepartmentOptions={normalizedDepartmentOptions}
-                  getDeptColor={getDeptColor}
-                  normalizeDeptName={normalizeDeptName}
-                />
+                <Box key="reports">
+                  <ReportManager
+                    reports={reports}
+                    users={users}
+                    departments={departments}
+                    reportDate={reportDate}
+                    setReportDate={setReportDate}
+                    reportDeptFilter={reportDeptFilter}
+                    setReportDeptFilter={setReportDeptFilter}
+                    normalizedDepartmentOptions={normalizedDepartmentOptions}
+                    getDeptColor={getDeptColor}
+                    normalizeDeptName={normalizeDeptName}
+                  />
+                  <Box sx={{ mt: 3 }}>
+                    <HeadReportForm profile={currentAdminProfile} />
+                  </Box>
+                </Box>
               )}
               {tabValue === 3 && (
                 <AttendanceManager
@@ -814,58 +965,143 @@ const fetchEmployees = async () => {
                 />
               )}
               {tabValue === 6 && (
-                <Box key="head-tasks" component={motion.div} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-
+                <Box
+                  key="head-tasks"
+                  component={motion.div}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                >
                   {/* Strategic Task Assignment Form */}
                   <Box
                     sx={{
                       mb: 5,
                       p: { xs: 3, md: 4 },
-                      borderRadius: '24px',
-                      background: '#ffffff',
-                      border: '1px solid rgba(0,0,0,0.06)',
-                      boxShadow: '0 4px 30px rgba(0,0,0,0.02)',
-                      position: 'relative',
-                      overflow: 'hidden'
+                      borderRadius: "24px",
+                      background: "#ffffff",
+                      border: "1px solid rgba(0,0,0,0.06)",
+                      boxShadow: "0 4px 30px rgba(0,0,0,0.02)",
+                      position: "relative",
+                      overflow: "hidden",
                     }}
                   >
-                    <Box sx={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'linear-gradient(to bottom, #38bdf8, #818cf8)' }} />
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "4px",
+                        height: "100%",
+                        background:
+                          "linear-gradient(to bottom, #38bdf8, #818cf8)",
+                      }}
+                    />
 
-                    <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box sx={{ width: 32, height: 32, borderRadius: '8px', background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <AssignmentIcon sx={{ color: '#38bdf8', fontSize: 20 }} />
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 900,
+                        mb: 4,
+                        color: "#0f172a",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: "8px",
+                          background: "rgba(56, 189, 248, 0.1)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <AssignmentIcon
+                          sx={{ color: "#38bdf8", fontSize: 20 }}
+                        />
                       </Box>
-                      {editingHeadTask ? "Update Strategic Directive" : "New Strategic Directive"}
+                      {editingHeadTask
+                        ? "Update Strategic Directive"
+                        : "New Strategic Directive"}
                     </Typography>
 
-                    <Box sx={{ width: '100%', maxWidth: '1000px', mt: 1 }}>
+                    <Box sx={{ width: "100%", maxWidth: "1000px", mt: 1 }}>
                       <Grid container spacing={3}>
                         {/* Field 1: Responsible Head */}
                         <Grid item xs={12} md={8}>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.75rem",
+                              color: "#64748b",
+                              mb: 1,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
                             Select Head
                           </Typography>
                           <TextField
                             select
                             fullWidth
                             value={headTaskForm.headId}
-                            onChange={(e) => setHeadTaskForm((prev) => ({ ...prev, headId: e.target.value }))}
+                            onChange={(e) =>
+                              setHeadTaskForm((prev) => ({
+                                ...prev,
+                                headId: e.target.value,
+                              }))
+                            }
                             sx={{
-                              "& .MuiInputBase-input": { color: "#0f172a", fontSize: "0.95rem", fontWeight: 600, py: 1.5 },
+                              "& .MuiInputBase-input": {
+                                color: "#0f172a",
+                                fontSize: "0.95rem",
+                                fontWeight: 600,
+                                py: 1.5,
+                              },
                               "& .MuiOutlinedInput-root": {
                                 backgroundColor: "#f8fafc",
-                                borderRadius: '12px',
+                                borderRadius: "12px",
                                 "& fieldset": { borderColor: "#e2e8f0" },
                                 "&:hover fieldset": { borderColor: "#cbd5e1" },
-                                "&.Mui-focused fieldset": { borderColor: "#38bdf8" },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: "#38bdf8",
+                                },
                               },
                             }}
                           >
                             {employees.map((employee) => (
-                              <MenuItem key={employee._id} value={employee._id} sx={{ fontWeight: 600, py: 1.5 }}>
-                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                  <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>{employee.name}</Typography>
-                                  <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{employee.department || employee.post || "Employee"}</Typography>
+                              <MenuItem
+                                key={employee._id}
+                                value={employee._id}
+                                sx={{ fontWeight: 600, py: 1.5 }}
+                              >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontWeight: 700,
+                                      fontSize: "0.95rem",
+                                    }}
+                                  >
+                                    {employee.name}
+                                  </Typography>
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.75rem",
+                                      color: "#64748b",
+                                    }}
+                                  >
+                                    {employee.department ||
+                                      employee.post ||
+                                      "Employee"}
+                                  </Typography>
                                 </Box>
                               </MenuItem>
                             ))}
@@ -874,35 +1110,76 @@ const fetchEmployees = async () => {
 
                         {/* Field 2: Priority */}
                         <Grid item xs={12} md={4}>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                             Priority
+                          <Typography
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.75rem",
+                              color: "#64748b",
+                              mb: 1,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            Priority
                           </Typography>
                           <TextField
                             select
                             fullWidth
                             value={headTaskForm.priority}
-                            onChange={(e) => setHeadTaskForm((prev) => ({ ...prev, priority: e.target.value }))}
+                            onChange={(e) =>
+                              setHeadTaskForm((prev) => ({
+                                ...prev,
+                                priority: e.target.value,
+                              }))
+                            }
                             sx={{
-                              "& .MuiInputBase-input": { color: "#0f172a", fontSize: "0.95rem", fontWeight: 600, py: 1.5 },
+                              "& .MuiInputBase-input": {
+                                color: "#0f172a",
+                                fontSize: "0.95rem",
+                                fontWeight: 600,
+                                py: 1.5,
+                              },
                               "& .MuiOutlinedInput-root": {
                                 backgroundColor: "#f8fafc",
-                                borderRadius: '12px',
+                                borderRadius: "12px",
                                 "& fieldset": { borderColor: "#e2e8f0" },
                                 "&:hover fieldset": { borderColor: "#cbd5e1" },
-                                "&.Mui-focused fieldset": { borderColor: "#38bdf8" },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: "#38bdf8",
+                                },
                               },
                             }}
                           >
-                            <MenuItem value="Low" sx={{ fontWeight: 600 }}>Low</MenuItem>
-                            <MenuItem value="Medium" sx={{ fontWeight: 600 }}>Medium</MenuItem>
-                            <MenuItem value="High" sx={{ fontWeight: 600 }}>High</MenuItem>
-                            <MenuItem value="Critical" sx={{ fontWeight: 600, color: '#ef4444' }}>Critical</MenuItem>
+                            <MenuItem value="Low" sx={{ fontWeight: 600 }}>
+                              Low
+                            </MenuItem>
+                            <MenuItem value="Medium" sx={{ fontWeight: 600 }}>
+                              Medium
+                            </MenuItem>
+                            <MenuItem value="High" sx={{ fontWeight: 600 }}>
+                              High
+                            </MenuItem>
+                            <MenuItem
+                              value="Critical"
+                              sx={{ fontWeight: 600, color: "#ef4444" }}
+                            >
+                              Critical
+                            </MenuItem>
                           </TextField>
                         </Grid>
 
                         {/* Field 3: Task Details */}
                         <Grid item xs={12}>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.75rem",
+                              color: "#64748b",
+                              mb: 1,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
                             Task Description
                           </Typography>
                           <TextField
@@ -911,15 +1188,26 @@ const fetchEmployees = async () => {
                             fullWidth
                             placeholder="Detailed directive for the department..."
                             value={headTaskForm.task}
-                            onChange={(e) => setHeadTaskForm((prev) => ({ ...prev, task: e.target.value }))}
+                            onChange={(e) =>
+                              setHeadTaskForm((prev) => ({
+                                ...prev,
+                                task: e.target.value,
+                              }))
+                            }
                             sx={{
-                              "& .MuiInputBase-input": { color: "#0f172a", fontSize: "0.95rem", lineHeight: 1.6 },
+                              "& .MuiInputBase-input": {
+                                color: "#0f172a",
+                                fontSize: "0.95rem",
+                                lineHeight: 1.6,
+                              },
                               "& .MuiOutlinedInput-root": {
                                 backgroundColor: "#f8fafc",
-                                borderRadius: '12px',
+                                borderRadius: "12px",
                                 "& fieldset": { borderColor: "#e2e8f0" },
                                 "&:hover fieldset": { borderColor: "#cbd5e1" },
-                                "&.Mui-focused fieldset": { borderColor: "#38bdf8" },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: "#38bdf8",
+                                },
                               },
                             }}
                           />
@@ -927,22 +1215,43 @@ const fetchEmployees = async () => {
 
                         {/* Field 4: Commencement Date */}
                         <Grid item xs={12} md={6}>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.75rem",
+                              color: "#64748b",
+                              mb: 1,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
                             posting date
                           </Typography>
                           <TextField
                             type="date"
                             fullWidth
                             value={headTaskForm.assignedDate}
-                            onChange={(e) => setHeadTaskForm((prev) => ({ ...prev, assignedDate: e.target.value }))}
+                            onChange={(e) =>
+                              setHeadTaskForm((prev) => ({
+                                ...prev,
+                                assignedDate: e.target.value,
+                              }))
+                            }
                             sx={{
-                              "& .MuiInputBase-input": { color: "#0f172a", fontSize: "0.95rem", fontWeight: 600, py: 1.5 },
+                              "& .MuiInputBase-input": {
+                                color: "#0f172a",
+                                fontSize: "0.95rem",
+                                fontWeight: 600,
+                                py: 1.5,
+                              },
                               "& .MuiOutlinedInput-root": {
                                 backgroundColor: "#f8fafc",
-                                borderRadius: '12px',
+                                borderRadius: "12px",
                                 "& fieldset": { borderColor: "#e2e8f0" },
                                 "&:hover fieldset": { borderColor: "#cbd5e1" },
-                                "&.Mui-focused fieldset": { borderColor: "#38bdf8" },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: "#38bdf8",
+                                },
                               },
                             }}
                           />
@@ -950,22 +1259,43 @@ const fetchEmployees = async () => {
 
                         {/* Field 5: Target Deadline */}
                         <Grid item xs={12} md={6}>
-                          <Typography sx={{ fontWeight: 800, fontSize: '0.75rem', color: '#64748b', mb: 1, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 800,
+                              fontSize: "0.75rem",
+                              color: "#64748b",
+                              mb: 1,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
                             deadline
                           </Typography>
                           <TextField
                             type="date"
                             fullWidth
                             value={headTaskForm.deadline}
-                            onChange={(e) => setHeadTaskForm((prev) => ({ ...prev, deadline: e.target.value }))}
+                            onChange={(e) =>
+                              setHeadTaskForm((prev) => ({
+                                ...prev,
+                                deadline: e.target.value,
+                              }))
+                            }
                             sx={{
-                              "& .MuiInputBase-input": { color: "#0f172a", fontSize: "0.95rem", fontWeight: 600, py: 1.5 },
+                              "& .MuiInputBase-input": {
+                                color: "#0f172a",
+                                fontSize: "0.95rem",
+                                fontWeight: 600,
+                                py: 1.5,
+                              },
                               "& .MuiOutlinedInput-root": {
                                 backgroundColor: "#f8fafc",
-                                borderRadius: '12px',
+                                borderRadius: "12px",
                                 "& fieldset": { borderColor: "#e2e8f0" },
                                 "&:hover fieldset": { borderColor: "#cbd5e1" },
-                                "&.Mui-focused fieldset": { borderColor: "#38bdf8" },
+                                "&.Mui-focused fieldset": {
+                                  borderColor: "#38bdf8",
+                                },
                               },
                             }}
                           />
@@ -973,12 +1303,27 @@ const fetchEmployees = async () => {
                       </Grid>
                     </Box>
 
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, gap: 2 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        mt: 4,
+                        gap: 2,
+                      }}
+                    >
                       {editingHeadTask && (
                         <Button
                           variant="outlined"
                           onClick={resetHeadTaskForm}
-                          sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 700, px: 3, py: 1, borderColor: '#cbd5e1', color: '#64748b' }}
+                          sx={{
+                            borderRadius: "10px",
+                            textTransform: "none",
+                            fontWeight: 700,
+                            px: 3,
+                            py: 1,
+                            borderColor: "#cbd5e1",
+                            color: "#64748b",
+                          }}
                         >
                           Cancel
                         </Button>
@@ -986,17 +1331,22 @@ const fetchEmployees = async () => {
                       <Button
                         variant="contained"
                         onClick={handleHeadTaskSubmit}
-                        disabled={!headTaskForm.headId || !headTaskForm.task || !headTaskForm.deadline}
+                        disabled={
+                          !headTaskForm.headId ||
+                          !headTaskForm.task ||
+                          !headTaskForm.deadline
+                        }
                         sx={{
-                          borderRadius: '10px',
-                          textTransform: 'none',
+                          borderRadius: "10px",
+                          textTransform: "none",
                           fontWeight: 700,
                           px: 4,
                           py: 1,
-                          color: '#ffffff',
-                          background: 'linear-gradient(135deg, #0f172a 0%, #334155 100%)',
-                          boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
-                          '&:hover': { background: '#000', color: '#fff' }
+                          color: "#ffffff",
+                          background:
+                            "linear-gradient(135deg, #0f172a 0%, #334155 100%)",
+                          boxShadow: "0 4px 14px rgba(0,0,0,0.2)",
+                          "&:hover": { background: "#000", color: "#fff" },
                         }}
                       >
                         {editingHeadTask ? "Save Changes" : "Deploy Directive"}
@@ -1005,13 +1355,28 @@ const fetchEmployees = async () => {
                   </Box>
 
                   {/* Active Directives List */}
-                  <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>
+                  <Box
+                    sx={{
+                      mb: 3,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 800, color: "#0f172a" }}
+                    >
                       Active Strategic Directives
                     </Typography>
                     <Chip
                       label={`${headTasks.length} Total`}
-                      sx={{ fontWeight: 800, bgcolor: '#f1f5f9', color: '#475569', borderRadius: '8px' }}
+                      sx={{
+                        fontWeight: 800,
+                        bgcolor: "#f1f5f9",
+                        color: "#475569",
+                        borderRadius: "8px",
+                      }}
                     />
                   </Box>
 
@@ -1022,9 +1387,15 @@ const fetchEmployees = async () => {
                           employees.find((e) => e._id === task.headId) ||
                           admins.find((a) => a._id === task.headId);
                         const headTitle =
-                          selectedHead?.name || task.headName || task.head || "Unknown";
+                          selectedHead?.name ||
+                          task.headName ||
+                          task.head ||
+                          "Unknown";
                         const headDepartment =
-                          selectedHead?.department || selectedHead?.post || task.department || "Operations";
+                          selectedHead?.department ||
+                          selectedHead?.post ||
+                          task.department ||
+                          "Operations";
                         const isCompleted = task.status === "completed";
                         return (
                           <Grid item xs={12} md={6} key={task._id}>
@@ -1034,22 +1405,58 @@ const fetchEmployees = async () => {
                                 background: "#ffffff",
                                 border: "1px solid rgba(148, 163, 184, 0.2)",
                                 boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
-                                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                                position: 'relative',
-                                overflow: 'visible',
+                                transition:
+                                  "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                position: "relative",
+                                overflow: "visible",
                               }}
                             >
                               <CardContent sx={{ p: 3 }}>
-                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "flex-start",
+                                    mb: 2,
+                                  }}
+                                >
                                   <Box sx={{ flex: 1, pr: 2 }}>
-                                    <Typography sx={{ fontWeight: 800, color: "#0f172a", fontSize: '1.1rem', mb: 0.5, lineHeight: 1.3 }}>
+                                    <Typography
+                                      sx={{
+                                        fontWeight: 800,
+                                        color: "#0f172a",
+                                        fontSize: "1.1rem",
+                                        mb: 0.5,
+                                        lineHeight: 1.3,
+                                      }}
+                                    >
                                       {task.title || task.task}
                                     </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                      <Avatar sx={{ width: 20, height: 20, fontSize: '0.7rem', bgcolor: '#e0f2fe', color: '#0369a1' }}>
-                                        {headTitle?.[0] || 'H'}
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Avatar
+                                        sx={{
+                                          width: 20,
+                                          height: 20,
+                                          fontSize: "0.7rem",
+                                          bgcolor: "#e0f2fe",
+                                          color: "#0369a1",
+                                        }}
+                                      >
+                                        {headTitle?.[0] || "H"}
                                       </Avatar>
-                                      <Typography sx={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 600 }}>
+                                      <Typography
+                                        sx={{
+                                          color: "#64748b",
+                                          fontSize: "0.8rem",
+                                          fontWeight: 600,
+                                        }}
+                                      >
                                         {headTitle} · {headDepartment}
                                       </Typography>
                                     </Box>
@@ -1059,15 +1466,33 @@ const fetchEmployees = async () => {
                                       <>
                                         <IconButton
                                           size="small"
-                                          onClick={() => handleEditHeadTask(task)}
-                                          sx={{ color: "#64748b", '&:hover': { color: '#3b82f6', bgcolor: 'rgba(59, 130, 246, 0.05)' } }}
+                                          onClick={() =>
+                                            handleEditHeadTask(task)
+                                          }
+                                          sx={{
+                                            color: "#64748b",
+                                            "&:hover": {
+                                              color: "#3b82f6",
+                                              bgcolor:
+                                                "rgba(59, 130, 246, 0.05)",
+                                            },
+                                          }}
                                         >
                                           <EditIcon fontSize="small" />
                                         </IconButton>
                                         <IconButton
                                           size="small"
-                                          onClick={() => handleDeleteHeadTask(task._id)}
-                                          sx={{ color: "#64748b", '&:hover': { color: '#ef4444', bgcolor: 'rgba(239, 68, 68, 0.05)' } }}
+                                          onClick={() =>
+                                            handleDeleteHeadTask(task._id)
+                                          }
+                                          sx={{
+                                            color: "#64748b",
+                                            "&:hover": {
+                                              color: "#ef4444",
+                                              bgcolor:
+                                                "rgba(239, 68, 68, 0.05)",
+                                            },
+                                          }}
                                         >
                                           <DeleteIcon fontSize="small" />
                                         </IconButton>
@@ -1076,16 +1501,23 @@ const fetchEmployees = async () => {
                                   </Stack>
                                 </Box>
 
-                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: 1,
+                                    mb: 3,
+                                  }}
+                                >
                                   <Chip
                                     label={headTaskSourceChipLabel(task)}
                                     size="small"
                                     sx={{
                                       fontWeight: 800,
-                                      fontSize: '0.65rem',
-                                      bgcolor: '#f1f5f9',
-                                      color: '#475569',
-                                      borderRadius: '6px'
+                                      fontSize: "0.65rem",
+                                      bgcolor: "#f1f5f9",
+                                      color: "#475569",
+                                      borderRadius: "6px",
                                     }}
                                   />
                                   <Chip
@@ -1093,60 +1525,133 @@ const fetchEmployees = async () => {
                                     size="small"
                                     sx={{
                                       fontWeight: 800,
-                                      fontSize: '0.65rem',
-                                      textTransform: 'uppercase',
+                                      fontSize: "0.65rem",
+                                      textTransform: "uppercase",
                                       bgcolor: (() => {
-                                        const p = (task.priority || "Medium").toLowerCase();
-                                        if (p === 'critical' || p === 'high') return '#fee2e2';
-                                        if (p === 'medium') return '#fef3c7';
-                                        return '#f0fdf4';
+                                        const p = (
+                                          task.priority || "Medium"
+                                        ).toLowerCase();
+                                        if (p === "critical" || p === "high")
+                                          return "#fee2e2";
+                                        if (p === "medium") return "#fef3c7";
+                                        return "#f0fdf4";
                                       })(),
                                       color: (() => {
-                                        const p = (task.priority || "Medium").toLowerCase();
-                                        if (p === 'critical' || p === 'high') return '#991b1b';
-                                        if (p === 'medium') return '#92400e';
-                                        return '#166534';
+                                        const p = (
+                                          task.priority || "Medium"
+                                        ).toLowerCase();
+                                        if (p === "critical" || p === "high")
+                                          return "#991b1b";
+                                        if (p === "medium") return "#92400e";
+                                        return "#166534";
                                       })(),
-                                      borderRadius: '6px'
+                                      borderRadius: "6px",
                                     }}
                                   />
                                   <Chip
-                                    icon={<AccessTimeIcon sx={{ fontSize: '14px !important' }} />}
-                                    label={`Due: ${task.deadline ? new Date(task.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : "-"}`}
+                                    icon={
+                                      <AccessTimeIcon
+                                        sx={{ fontSize: "14px !important" }}
+                                      />
+                                    }
+                                    label={`Due: ${
+                                      task.deadline
+                                        ? new Date(
+                                            task.deadline,
+                                          ).toLocaleDateString("en-GB", {
+                                            day: "2-digit",
+                                            month: "short",
+                                          })
+                                        : "-"
+                                    }`}
                                     size="small"
-                                    sx={{ fontWeight: 700, fontSize: '0.75rem', bgcolor: '#f8fafc', color: '#475569', borderRadius: '6px' }}
+                                    sx={{
+                                      fontWeight: 700,
+                                      fontSize: "0.75rem",
+                                      bgcolor: "#f8fafc",
+                                      color: "#475569",
+                                      borderRadius: "6px",
+                                    }}
                                   />
                                 </Box>
 
-                                <Box sx={{ pt: 2, borderTop: '1px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 600 }}>
+                                <Box
+                                  sx={{
+                                    pt: 2,
+                                    borderTop: "1px dashed #e2e8f0",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  }}
+                                >
+                                  <Typography
+                                    sx={{
+                                      fontSize: "0.75rem",
+                                      color: "#94a3b8",
+                                      fontWeight: 600,
+                                    }}
+                                  >
                                     Status
                                   </Typography>
                                   <Select
                                     size="small"
                                     value={task.status || "pending"}
-                                    onChange={(e) => handleUpdateTaskStatus(task, e.target.value)}
+                                    onChange={(e) =>
+                                      handleUpdateTaskStatus(
+                                        task,
+                                        e.target.value,
+                                      )
+                                    }
                                     sx={{
                                       height: 32,
                                       minWidth: 120,
                                       fontSize: "0.8rem",
                                       color: "#111827",
                                       backgroundColor:
-                                        !task.status || task.status === "pending"
+                                        !task.status ||
+                                        task.status === "pending"
                                           ? "#f8fafc"
                                           : task.status === "completed"
-                                            ? "#ecfdf5"
-                                            : "#eff6ff",
+                                          ? "#ecfdf5"
+                                          : "#eff6ff",
                                       fontWeight: 800,
                                       borderRadius: "10px",
-                                      "& .MuiOutlinedInput-notchedOutline": { border: "1px solid #e2e8f0" },
-                                      "&:hover .MuiOutlinedInput-notchedOutline": { border: "1px solid #cbd5e1" },
-                                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": { border: "1px solid #38bdf8" }
+                                      "& .MuiOutlinedInput-notchedOutline": {
+                                        border: "1px solid #e2e8f0",
+                                      },
+                                      "&:hover .MuiOutlinedInput-notchedOutline":
+                                        { border: "1px solid #cbd5e1" },
+                                      "&.Mui-focused .MuiOutlinedInput-notchedOutline":
+                                        { border: "1px solid #38bdf8" },
                                     }}
                                   >
-                                    <MenuItem value="pending" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>⏳ Pending</MenuItem>
-                                    <MenuItem value="in_progress" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>⚙️ In Progress</MenuItem>
-                                    <MenuItem value="completed" sx={{ fontWeight: 700, fontSize: '0.85rem' }}>✅ Completed</MenuItem>
+                                    <MenuItem
+                                      value="pending"
+                                      sx={{
+                                        fontWeight: 700,
+                                        fontSize: "0.85rem",
+                                      }}
+                                    >
+                                      ⏳ Pending
+                                    </MenuItem>
+                                    <MenuItem
+                                      value="in_progress"
+                                      sx={{
+                                        fontWeight: 700,
+                                        fontSize: "0.85rem",
+                                      }}
+                                    >
+                                      ⚙️ In Progress
+                                    </MenuItem>
+                                    <MenuItem
+                                      value="completed"
+                                      sx={{
+                                        fontWeight: 700,
+                                        fontSize: "0.85rem",
+                                      }}
+                                    >
+                                      ✅ Completed
+                                    </MenuItem>
                                   </Select>
                                 </Box>
                               </CardContent>
@@ -1167,26 +1672,45 @@ const fetchEmployees = async () => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 900, color: "#0f172a" }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      mb: 3,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{ fontWeight: 900, color: "#0f172a" }}
+                    >
                       DM Projects
                     </Typography>
                     <Chip
                       label={`${dmProjects.length} Projects`}
-                      sx={{ fontWeight: 800, bgcolor: "#f1f5f9", color: "#475569", borderRadius: "8px" }}
+                      sx={{
+                        fontWeight: 800,
+                        bgcolor: "#f1f5f9",
+                        color: "#475569",
+                        borderRadius: "8px",
+                      }}
                     />
                   </Box>
 
                   {dmProjects.length === 0 ? (
                     <Box sx={{ textAlign: "center", py: 8 }}>
-                      <Typography sx={{ color: "#94a3b8", fontWeight: 600 }}>No DM projects found.</Typography>
+                      <Typography sx={{ color: "#94a3b8", fontWeight: 600 }}>
+                        No DM projects found.
+                      </Typography>
                     </Box>
                   ) : (
                     <Grid container spacing={3}>
                       {dmProjects.map((project) => (
                         <Grid item xs={12} sm={6} md={4} key={project._id}>
                           <Card
-                            onClick={() => navigate(`/head/custom-projects/${project._id}`)}
+                            onClick={() =>
+                              navigate(`/head/custom-projects/${project._id}`)
+                            }
                             sx={{
                               borderRadius: "20px",
                               background: "#ffffff",
@@ -1197,23 +1721,59 @@ const fetchEmployees = async () => {
                             }}
                           >
                             <CardContent sx={{ p: 3 }}>
-                              <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 1.5 }}>
-                                <Typography sx={{ fontWeight: 800, color: "#0f172a", fontSize: "1rem", flex: 1, pr: 1 }}>
-                                  {project.projectTilte || project.projectTitle || "Untitled Project"}
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "flex-start",
+                                  justifyContent: "space-between",
+                                  mb: 1.5,
+                                }}
+                              >
+                                <Typography
+                                  sx={{
+                                    fontWeight: 800,
+                                    color: "#0f172a",
+                                    fontSize: "1rem",
+                                    flex: 1,
+                                    pr: 1,
+                                  }}
+                                >
+                                  {project.projectTilte ||
+                                    project.projectTitle ||
+                                    "Untitled Project"}
                                 </Typography>
                                 <Chip
-                                  label={`${(project.tasks || []).length} tasks`}
+                                  label={`${
+                                    (project.tasks || []).length
+                                  } tasks`}
                                   size="small"
-                                  sx={{ fontWeight: 800, bgcolor: "#e0f2fe", color: "#0369a1", borderRadius: "8px", flexShrink: 0 }}
+                                  sx={{
+                                    fontWeight: 800,
+                                    bgcolor: "#e0f2fe",
+                                    color: "#0369a1",
+                                    borderRadius: "8px",
+                                    flexShrink: 0,
+                                  }}
                                 />
                               </Box>
-                              <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                              <Stack
+                                direction="row"
+                                spacing={0.5}
+                                sx={{ flexWrap: "wrap", gap: 0.5 }}
+                              >
                                 {(project.departments || []).map((d) => (
                                   <Chip
                                     key={d.departmentId}
                                     label={d.departmentName}
                                     size="small"
-                                    sx={{ fontWeight: 700, fontSize: "0.65rem", bgcolor: "#f8fafc", color: "#475569", borderRadius: "6px", border: "1px solid #e2e8f0" }}
+                                    sx={{
+                                      fontWeight: 700,
+                                      fontSize: "0.65rem",
+                                      bgcolor: "#f8fafc",
+                                      color: "#475569",
+                                      borderRadius: "6px",
+                                      border: "1px solid #e2e8f0",
+                                    }}
                                   />
                                 ))}
                               </Stack>
@@ -1253,7 +1813,9 @@ const fetchEmployees = async () => {
           openDeleteDialog={openDeleteDialog}
           cancelDeleteUser={() => setOpenDeleteDialog(false)}
           userToDelete={userToDelete || adminToDelete}
-          confirmDeleteUser={adminToDelete ? confirmDeleteAdmin : confirmDeleteUser}
+          confirmDeleteUser={
+            adminToDelete ? confirmDeleteAdmin : confirmDeleteUser
+          }
           openPasswordDialog={openPasswordDialog}
           handlePasswordDialogClose={() => setOpenPasswordDialog(false)}
           passwordForm={passwordForm}
@@ -1263,7 +1825,18 @@ const fetchEmployees = async () => {
 
         {/* Snackbar Alert */}
         {alertOpen && (
-          <Alert severity="success" onClose={() => setAlertOpen(false)} sx={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, borderRadius: "12px", boxShadow: "0 8px 32px rgba(0,0,0,0.1)" }}>
+          <Alert
+            severity="success"
+            onClose={() => setAlertOpen(false)}
+            sx={{
+              position: "fixed",
+              bottom: 24,
+              right: 24,
+              zIndex: 9999,
+              borderRadius: "12px",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
+            }}
+          >
             {alertMessage}
           </Alert>
         )}

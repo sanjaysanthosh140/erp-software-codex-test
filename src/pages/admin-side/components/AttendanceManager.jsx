@@ -316,7 +316,7 @@ const AttendanceManager = ({
             </TableContainer>
           </Box>
         ))}
-
+        
         {filteredLogs.length === 0 && (
           <Box sx={{ textAlign: "center", py: 10 }}>
             <Typography sx={{ color: "#94a3b8", fontWeight: 700 }}>
