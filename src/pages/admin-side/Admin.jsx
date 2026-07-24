@@ -9,7 +9,6 @@ import ReportManager from "./components/ReportManager";
 import { getDeptColor, normalizeDeptName } from "./components/SharedStyles";
 import "./AdminDashboard.css";
 
-  
 /** Select value to load tasks/subtasks from every project the employee is on */
 const ALL_PROJECTS_VALUE = "__ALL_PROJECTS__";
 
@@ -120,6 +119,7 @@ function Admin() {
 
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState([]);
+  const [reportemp,setReportemp]=useState([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState("");
@@ -369,7 +369,12 @@ function Admin() {
     });
 
     employees.forEach((employee) => {
-      const label = employee?.department || employee?.dept || employee?.departmentName || employee?.deptName || "";
+      const label =
+        employee?.department ||
+        employee?.dept ||
+        employee?.departmentName ||
+        employee?.deptName ||
+        "";
       if (label) values.add(normalizeDeptName(label));
     });
 
@@ -395,6 +400,21 @@ function Admin() {
         setLoading(false);
       }
     };
+    const employee_for_report = async () => {
+      try {
+        let resposne = await axios.get(`${API_URL}/employeelists`, {
+          headers: {
+            Authorization: localStorage.getItem("adminToken"),
+            "Content-Type": "application/json",
+          },
+        });
+        setReportemp(resposne.data);
+         console.log("headincluded_emp",resposne.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    employee_for_report();
     fetchEmployees();
   }, [authHeaders]);
 
@@ -406,9 +426,14 @@ function Admin() {
           axios.get(`${API_URL}/admin/departments`, { headers: authHeaders }),
         ]);
 
-        const reportRows = Array.isArray(reportsRes.data) ? reportsRes.data : [];
-        const departmentsPayload = departmentsRes.data?.data ?? departmentsRes.data;
-        const departmentRows = Array.isArray(departmentsPayload) ? departmentsPayload : [];
+        const reportRows = Array.isArray(reportsRes.data)
+          ? reportsRes.data
+          : [];
+        const departmentsPayload =
+          departmentsRes.data?.data ?? departmentsRes.data;
+        const departmentRows = Array.isArray(departmentsPayload)
+          ? departmentsPayload
+          : [];
 
         setReports(reportRows);
         setDepartments(departmentRows);
@@ -684,7 +709,9 @@ function Admin() {
             type="button"
             role="tab"
             aria-selected={activeWorkSection === "tasks"}
-            className={`adm-section-tab ${activeWorkSection === "tasks" ? "adm-section-tab--active" : ""}`}
+            className={`adm-section-tab ${
+              activeWorkSection === "tasks" ? "adm-section-tab--active" : ""
+            }`}
             onClick={() => setActiveWorkSection("tasks")}
           >
             Employee Performance
@@ -693,7 +720,11 @@ function Admin() {
             type="button"
             role="tab"
             aria-selected={activeWorkSection === "department"}
-            className={`adm-section-tab ${activeWorkSection === "department" ? "adm-section-tab--active" : ""}`}
+            className={`adm-section-tab ${
+              activeWorkSection === "department"
+                ? "adm-section-tab--active"
+                : ""
+            }`}
             onClick={() => setActiveWorkSection("department")}
           >
             Head Tasks
@@ -702,7 +733,9 @@ function Admin() {
             type="button"
             role="tab"
             aria-selected={activeWorkSection === "floor"}
-            className={`adm-section-tab ${activeWorkSection === "floor" ? "adm-section-tab--active" : ""}`}
+            className={`adm-section-tab ${
+              activeWorkSection === "floor" ? "adm-section-tab--active" : ""
+            }`}
             onClick={() => setActiveWorkSection("floor")}
           >
             Floor
@@ -711,8 +744,13 @@ function Admin() {
             type="button"
             role="tab"
             aria-selected={activeWorkSection === "custom"}
-            className={`adm-section-tab ${activeWorkSection === "custom" ? "adm-section-tab--active" : ""}`}
-            onClick={() => { setActiveWorkSection("custom"); setAdminCustomProjectId(null); }}
+            className={`adm-section-tab ${
+              activeWorkSection === "custom" ? "adm-section-tab--active" : ""
+            }`}
+            onClick={() => {
+              setActiveWorkSection("custom");
+              setAdminCustomProjectId(null);
+            }}
           >
             calendar
           </button>
@@ -721,7 +759,9 @@ function Admin() {
             type="button"
             role="tab"
             aria-selected={activeWorkSection === "reports"}
-            className={`adm-section-tab ${activeWorkSection === "reports" ? "adm-section-tab--active" : ""}`}
+            className={`adm-section-tab ${
+              activeWorkSection === "reports" ? "adm-section-tab--active" : ""
+            }`}
             onClick={() => setActiveWorkSection("reports")}
           >
             Daily Reports
@@ -731,7 +771,7 @@ function Admin() {
         {activeWorkSection === "reports" ? (
           <ReportManager
             reports={reports}
-            users={employees}
+            users={reportemp}
             departments={departments}
             reportDate={reportDate}
             setReportDate={setReportDate}
@@ -826,7 +866,11 @@ function Admin() {
             <h3 className="adm-ceo-title">Department Task Allocation</h3>
             {headTaskBanner.message ? (
               <div
-                className={`adm-banner ${headTaskBanner.type === "ok" ? "adm-banner--ok" : "adm-banner--err"}`}
+                className={`adm-banner ${
+                  headTaskBanner.type === "ok"
+                    ? "adm-banner--ok"
+                    : "adm-banner--err"
+                }`}
               >
                 {headTaskBanner.message}
               </div>
@@ -1071,8 +1115,12 @@ function Admin() {
                                     {task.title}
                                   </div>
                                   <div className="adm-head-sub">
-                                    Head: {head?.name || task.assignedByName || task.headName || "Unassigned"} (
-                                    {head?.department || head?.role || "—"})
+                                    Head:{" "}
+                                    {head?.name ||
+                                      task.assignedByName ||
+                                      task.headName ||
+                                      "Unassigned"}{" "}
+                                    ({head?.department || head?.role || "—"})
                                   </div>
                                 </div>
                                 <div className="adm-head-actions">
@@ -1144,7 +1192,9 @@ function Admin() {
                       (sub) => sub.status === "completed",
                     ).length;
                     const taskDueDate = task.duedate || task.dueDate;
-                    const rowKey = `${task.sourceProjectId || selectedProjectId}-${task._id}-${task.task_id}`;
+                    const rowKey = `${
+                      task.sourceProjectId || selectedProjectId
+                    }-${task._id}-${task.task_id}`;
                     return (
                       <div key={rowKey} className="adm-task-card">
                         <div className="adm-task-card-head">
@@ -1179,7 +1229,9 @@ function Admin() {
                               return (
                                 <li
                                   key={`${rowKey}-${sub.todo_id}`}
-                                  className={`adm-sub-item ${done ? "adm-sub-item--done" : ""}`}
+                                  className={`adm-sub-item ${
+                                    done ? "adm-sub-item--done" : ""
+                                  }`}
                                 >
                                   <span className="adm-sub-dot" aria-hidden />
                                   <span>{sub.title}</span>
