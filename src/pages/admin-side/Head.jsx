@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -93,22 +93,48 @@ const iPhoneGlassButton = {
 const Head = () => {
   const navigate = useNavigate();
   const socket = io(API_URL);
+  const attendanceSentRef = useRef(false);
+
+  const attendance = async (action = "PUNCH_OUT") => {
+    const token = localStorage.getItem("adminToken");
+    if (!token) return;
+
+    try {
+      await axios.post(
+        `${API_URL}/admin/attendance`,
+        { action },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    } catch (error) {
+      console.log("Head attendance sync failed:", error);
+    }
+  };
+
   useEffect(() => {
+    if (attendanceSentRef.current) return;
+
     const token = localStorage.getItem("adminToken");
     const role = localStorage.getItem("adminRole") || "";
     if (!token || role.toLowerCase() !== "head") {
       navigate("/admin");
+      return;
     }
+
+    attendanceSentRef.current = true;
     employee_reports(token);
+    attendance("PUNCH_OUT");
   }, [navigate]);
 
-  
-  useEffect(() => {
-    attendance();
-  }, []);
-
-  const handleLogout = () => {
-    attendance();
+  const handleLogout = async () => {
+    if (!attendanceSentRef.current) {
+      attendanceSentRef.current = true;
+    }
+    await attendance("PUNCH_OUT");
     localStorage.clear();
     navigate("/admin");
   };
@@ -171,25 +197,6 @@ const Head = () => {
       return JSON.parse(atob(payload));
     } catch (e) {
       return {};
-    }
-  };
-  const attendance = async () => {
-    try {
-      const token = localStorage.getItem("adminToken");
-      if (token) {
-        await axios.post(
-          `${API_URL}/admin/attendance`,
-          { action: "PUNCH_OUT" },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          },
-        );
-      }
-    } catch (error) {
-      console.log(error);
     }
   };
 

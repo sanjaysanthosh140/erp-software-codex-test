@@ -272,10 +272,10 @@ const HRDashboard = () => {
       const res = await axios.get(`${API_URL}/employeelists`, {
         headers: {
           "Content-Type": "application/json",
-          Authorization: localStorage.getItem("adminToken")
+          Authorization: localStorage.getItem("adminToken"),
         },
       });
-      console.log("users",res.data)
+      console.log("users", res.data);
       setUsers(res.data);
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -316,7 +316,7 @@ const HRDashboard = () => {
       const res = await axios.get(`${API_URL}/admin/employe_log`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-     
+      console.log("attendance log",res.data);
       setLogs(res.data);
     } catch (err) {
       console.error("Error fetching logs:", err);
