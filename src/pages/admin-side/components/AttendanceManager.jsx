@@ -67,7 +67,8 @@ const AttendanceManager = ({
       ? true
       : toLocalISO(log.date) === attendanceDate;
 
-    const deptRaw = log.users?.department || "General";
+    const person = log.head || log.users || {};
+    const deptRaw = person.department || "General";
     const deptNormalized = normalizeDeptName(deptRaw);
     const matchesDept =
       attendanceDeptFilter === "ALL" ||
@@ -76,10 +77,11 @@ const AttendanceManager = ({
 
     return matchesDate && matchesDept;
   });
-  
+
   const groupedLogs = filteredLogs.reduce((acc, log) => {
-    let deptRaw = log.users?.department || "General";
-    let dept = normalizeDeptName(deptRaw);
+    const person = log.head || log.users || {};
+    const deptRaw = person.department || "General";
+    const dept = normalizeDeptName(deptRaw);
 
     if (!acc[dept]) acc[dept] = [];
     acc[dept].push(log);
@@ -236,9 +238,11 @@ const AttendanceManager = ({
                 </TableHead>
                 <TableBody>
                   {categoryLogs.map((log) => {
+                    const person = log.head || log.users || {};
                     const session = Array.isArray(log.logs) ? log.logs[0] : log;
                     const first = session?.firstnoon || session?.first;
                     const second = session?.secondnoon || session?.second;
+                    const isHead = !!log.head;
 
                     const fTimeIn = formatTime(first?.timeIn);
                     const fDisplay = fTimeIn ? fTimeIn : "-";
@@ -248,7 +252,7 @@ const AttendanceManager = ({
 
                     return (
                       <TableRow
-                        key={log._id}
+                        key={log._id || `${log.date}-${person.name}`}
                         component={motion.tr}
                         transition={{ duration: 0.2 }}
                         sx={{
@@ -263,15 +267,34 @@ const AttendanceManager = ({
                                 height: 32,
                                 fontSize: "0.85rem",
                                 fontWeight: 900,
-                                background: "linear-gradient(135deg, #38bdf8, #2563eb)",
+                                background: isHead
+                                  ? "linear-gradient(135deg, #f59e0b, #d97706)"
+                                  : "linear-gradient(135deg, #38bdf8, #2563eb)",
                                 color: "#fff",
                               }}
                             >
-                              {log.users?.name?.charAt(0) || "?"}
+                              {person?.name?.charAt(0) || "?"}
                             </Avatar>
-                            <Typography sx={{ fontWeight: 800, color: "rgba(0,0,0,0.8)" }}>
-                              {log.users?.name || "Unknown"}
-                            </Typography>
+                            <Box>
+                              <Typography sx={{ fontWeight: 800, color: "rgba(0,0,0,0.8)" }}>
+                                {person?.name || "Unknown"}
+                              </Typography>
+                              {isHead && (
+                                <Chip
+                                  label="Head"
+                                  size="small"
+                                  sx={{
+                                    mt: 0.5,
+                                    height: 20,
+                                    fontSize: "0.65rem",
+                                    fontWeight: 800,
+                                    background: "rgba(245, 158, 11, 0.12)",
+                                    color: "#b45309",
+                                    borderRadius: "999px",
+                                  }}
+                                />
+                              )}
+                            </Box>
                           </Box>
                         </TableCell>
                         <TableCell sx={{ borderBottom: `1px solid ${GLASS_BORDER}`, color: "#64748b", fontWeight: 700 }}>
@@ -279,11 +302,11 @@ const AttendanceManager = ({
                         </TableCell>
                         <TableCell sx={{ borderBottom: `1px solid ${GLASS_BORDER}` }}>
                           <Chip
-                            label={log.users?.department || "N/A"}
+                            label={person?.department || "N/A"}
                             size="small"
                             sx={{
-                              background: "rgba(56, 189, 248, 0.1)",
-                              color: "#0ea5e9",
+                              background: isHead ? "rgba(245, 158, 11, 0.12)" : "rgba(56, 189, 248, 0.1)",
+                              color: isHead ? "#b45309" : "#0ea5e9",
                               fontWeight: 800,
                               borderRadius: "8px",
                               fontSize: "0.75rem",
