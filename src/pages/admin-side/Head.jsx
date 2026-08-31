@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -93,28 +93,22 @@ const iPhoneGlassButton = {
 const Head = () => {
   const navigate = useNavigate();
   const socket = io(API_URL);
-  const attendanceCalledRef = useRef(false);
-
   useEffect(() => {
-    if (attendanceCalledRef.current) return;
-
     const token = localStorage.getItem("adminToken");
     const role = localStorage.getItem("adminRole") || "";
     if (!token || role.toLowerCase() !== "head") {
       navigate("/admin");
-      return;
     }
-
-    attendanceCalledRef.current = true;
     employee_reports(token);
-    attendance();
   }, [navigate]);
 
-  const handleLogout = async () => {
-    if (!attendanceCalledRef.current) {
-      attendanceCalledRef.current = true;
-    }
-    await attendance();
+  
+  useEffect(() => {
+    attendance();
+  }, []);
+
+  const handleLogout = () => {
+    attendance();
     localStorage.clear();
     navigate("/admin");
   };
@@ -182,20 +176,20 @@ const Head = () => {
   const attendance = async () => {
     try {
       const token = localStorage.getItem("adminToken");
-      if (!token) return;
-
-      await axios.post(
-        `${API_URL}/admin/attendance`,
-        { action: "PUNCH_OUT" },
-        {
-          headers: {
-            Authorization: token,
-            "Content-Type": "application/json",
+      if (token) {
+        await axios.post(
+          `${API_URL}/admin/attendance`,
+          { action: "PUNCH_OUT" },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           },
-        },
-      );
+        );
+      }
     } catch (error) {
-      console.log("Head attendance failed:", error);
+      console.log(error);
     }
   };
 
