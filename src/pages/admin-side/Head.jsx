@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -93,18 +93,66 @@ const iPhoneGlassButton = {
 const Head = () => {
   const navigate = useNavigate();
   const socket = io(API_URL);
+  const hasSentLogoutAttendanceRef = useRef(false);
+
+  const sendHeadAttendance = async (token) => {
+    await axios.post(
+      `${API_URL}/admin/attendance`,
+      { action: "PUNCH_OUT" },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  };
+
+  const getAttendanceUserKey = (token) => {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.id || payload._id || token.slice(-12);
+    } catch {
+      return token.slice(-12);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     const role = localStorage.getItem("adminRole") || "";
     if (!token || role.toLowerCase() !== "head") {
       navigate("/admin");
+      return;
     }
+
+    const today = new Date().toISOString().split("T")[0];
+    const attendanceKey = `head_attendance_login_sent_${getAttendanceUserKey(token)}_${today}`;
+    if (sessionStorage.getItem(attendanceKey) !== "true") {
+      sessionStorage.setItem(attendanceKey, "true");
+      sendHeadAttendance(token).catch((error) => {
+        sessionStorage.removeItem(attendanceKey);
+        console.error("Failed to record head login attendance", error);
+      });
+    }
+
     employee_reports(token);
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/admin");
+  const handleLogout = async () => {
+    if (hasSentLogoutAttendanceRef.current) return;
+    hasSentLogoutAttendanceRef.current = true;
+
+    const token = localStorage.getItem("adminToken");
+    try {
+      if (token) {
+        await sendHeadAttendance(token);
+      }
+    } catch (error) {
+      console.error("Failed to record head logout attendance", error);
+    } finally {
+      localStorage.clear();
+      navigate("/admin");
+    }
   };
   const [profile, setProfile] = useState(null);
   const [tasks, setTasks] = useState([]);
