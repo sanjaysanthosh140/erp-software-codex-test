@@ -1,13 +1,4 @@
-/**
- * EmployeeCockpit.jsx
- * Figma-matched layout:
- *   Header  → "Welcome back, [Name] 👋"  |  Logout
- *   Section 1 → AttendanceWidget (4 navy stat cards + punch actions)
- *   Section 2 → ProjectsPreview
- *   Section 3 → WorkReportForm (textarea + inline reports list, submit btn)
- *
- * UserReportsList is rendered inside WorkReportForm now — NOT separately here.
- */
+
 const API_URL = import.meta.env.VITE_API_URL;
 import React from "react";
 import { Box, Typography, Divider, Badge, IconButton, TextField, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";

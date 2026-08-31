@@ -42,21 +42,8 @@ const formatTime = (time) => {
     return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
   }
 
-  // Handle bare time strings like "04:16 AM" that the Render backend saves in UTC
   if (typeof time === "string" && /^\d{1,2}:\d{2}\s*(AM|PM)?/i.test(time)) {
-    const match = time.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?/i);
-    if (match) {
-      let [, hours, minutes, ampm] = match;
-      hours = parseInt(hours, 10);
-      minutes = parseInt(minutes, 10);
-      if (ampm) {
-        if (ampm.toUpperCase() === "PM" && hours < 12) hours += 12;
-        if (ampm.toUpperCase() === "AM" && hours === 12) hours = 0;
-      }
-      const tempDate = new Date();
-      tempDate.setUTCHours(hours, minutes, 0, 0);
-      return tempDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
-    }
+    return time;
   }
 
   return time;
@@ -72,6 +59,7 @@ const AttendanceManager = ({
   getDeptColor,
   normalizeDeptName,
 }) => {
+  
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const filteredLogs = logs.filter((log) => {
@@ -88,7 +76,7 @@ const AttendanceManager = ({
 
     return matchesDate && matchesDept;
   });
-
+  
   const groupedLogs = filteredLogs.reduce((acc, log) => {
     let deptRaw = log.users?.department || "General";
     let dept = normalizeDeptName(deptRaw);

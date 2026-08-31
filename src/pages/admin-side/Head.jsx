@@ -1,5 +1,5 @@
 const API_URL = import.meta.env.VITE_API_URL;
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -93,23 +93,37 @@ const iPhoneGlassButton = {
 const Head = () => {
   const navigate = useNavigate();
   const socket = io(API_URL);
+  const attendanceCalledRef = useRef(false);
+
   useEffect(() => {
+    if (attendanceCalledRef.current) return;
+
     const token = localStorage.getItem("adminToken");
     const role = localStorage.getItem("adminRole") || "";
     if (!token || role.toLowerCase() !== "head") {
       navigate("/admin");
+      return;
     }
+
+    attendanceCalledRef.current = true;
     employee_reports(token);
+    attendance();
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (!attendanceCalledRef.current) {
+      attendanceCalledRef.current = true;
+    }
+    await attendance();
     localStorage.clear();
     navigate("/admin");
   };
   const [profile, setProfile] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [reports, setReports] = useState([]);
-  const [reportSortBy, setReportSortBy] = useState("date");
+  const [reportFromDateFilter, setReportFromDateFilter] = useState("");
+  const [reportToDateFilter, setReportToDateFilter] = useState("");
+  const [reportEmployeeFilter, setReportEmployeeFilter] = useState("ALL");
 
   const [openDialog, setOpenDialog] = useState(false);
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
@@ -165,6 +179,25 @@ const Head = () => {
       return {};
     }
   };
+  const attendance = async () => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      if (!token) return;
+
+      await axios.post(
+        `${API_URL}/admin/attendance`,
+        { action: "PUNCH_OUT" },
+        {
+          headers: {
+            Authorization: token,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    } catch (error) {
+      console.log("Head attendance failed:", error);
+    }
+  };
 
   const getHeadIdFromToken = () => {
     const payload = getTokenPayload();
@@ -190,22 +223,83 @@ const Head = () => {
       setError("Failed to fetch assigned tasks");
     }
   };
-   
-const employee_reports = async (token)=>{
-  try {
-    const res = await axios.get(`${API_URL}/admin/get_reports`,{
-      headers:{
-        Authorization:token,
-        "Content-Type":"application/json"
-      }
-    })
-    console.log("report data", res.data);
-    const reportsArray = res.data?.data || res.data;
-    setReports(Array.isArray(reportsArray) ? reportsArray : []);
-  } catch (error) {
-    console.log(error);
-  }
-}
+
+  const employee_reports = async (token) => {
+    try {
+      const res = await axios.get(`${API_URL}/admin/get_reports`, {
+        headers: {
+          Authorization: token,
+          "Content-Type": "application/json",
+        },
+      });
+      console.log("report data", res.data);
+      const reportsArray = res.data?.data || res.data;
+      setReports(Array.isArray(reportsArray) ? reportsArray : []);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const getReportEmployeeName = (report) =>
+    report?.username ||
+    report?.userName ||
+    report?.employeeName ||
+    report?.name ||
+    "Unknown";
+
+  const getReportDescription = (report) =>
+    report?.desc ||
+    report?.description ||
+    report?.content ||
+    report?.report ||
+    "No description provided.";
+
+  const formatReportDate = (dateValue) => {
+    if (!dateValue) return "-";
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const getReportDateValue = (dateValue) => {
+    if (!dateValue) return "";
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const reportEmployeeOptions = useMemo(() => {
+    const names = (Array.isArray(reports) ? reports : [])
+      .map((report) => getReportEmployeeName(report))
+      .filter((name) => name && name !== "Unknown");
+
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+  }, [reports]);
+
+  const filteredReports = useMemo(() => {
+    return (Array.isArray(reports) ? [...reports] : [])
+      .filter((report) => {
+        const reportDateValue = getReportDateValue(report?.date);
+        const matchesFromDate =
+          !reportFromDateFilter || reportDateValue >= reportFromDateFilter;
+        const matchesToDate =
+          !reportToDateFilter || reportDateValue <= reportToDateFilter;
+        const matchesEmployee =
+          reportEmployeeFilter === "ALL" ||
+          getReportEmployeeName(report) === reportEmployeeFilter;
+
+        return matchesFromDate && matchesToDate && matchesEmployee;
+      })
+      .sort((a, b) => new Date(b?.date || 0) - new Date(a?.date || 0));
+  }, [reports, reportFromDateFilter, reportToDateFilter, reportEmployeeFilter]);
+
   const fetchHeadProjectOptions = async () => {
     try {
       const token = localStorage.getItem("adminToken");
@@ -399,15 +493,11 @@ const employee_reports = async (token)=>{
     try {
       // Add new task via API (POST only)
       console.log("form data", formData);
-      const response = await axios.post(
-        `${API_URL}/admin/add_task`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
+      const response = await axios.post(`${API_URL}/admin/add_task`, formData, {
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       console.log("Task created:", response.data);
       const newTask = {
@@ -575,15 +665,23 @@ const employee_reports = async (token)=>{
         {activeView === "production-activity" ? (
           <ProductionActivityLogger onBack={() => setActiveView("dashboard")} />
         ) : activeView === "head-reports" ? (
-          <Box sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}>
+          <Box
+            sx={{
+              width: "98%",
+              mx: "auto",
+              px: { xs: 1, md: 3 },
+              pt: 4,
+              pb: 10,
+            }}
+          >
             <Box
               sx={{
                 display: "flex",
+                flexDirection: { xs: "column", md: "row" },
                 justifyContent: "space-between",
-                alignItems: "center",
-                mb: 4,
-                flexWrap: "wrap",
-                gap: 2
+                alignItems: { xs: "stretch", md: "center" },
+                mb: 3,
+                gap: 2,
               }}
             >
               <Typography
@@ -599,74 +697,594 @@ const employee_reports = async (token)=>{
               <Button
                 variant="outlined"
                 onClick={() => setActiveView("dashboard")}
-                sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
+                sx={{
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
               >
                 Back to Dashboard
               </Button>
             </Box>
-            <Box sx={{ bgcolor: "#fff", p: 3, borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+            <Box
+              sx={{
+                bgcolor: "#fff",
+                p: 3,
+                borderRadius: "12px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              }}
+            >
               <HeadReportForm profile={profile} />
             </Box>
           </Box>
         ) : activeView === "daily-reports" ? (
-          <Box sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}>
+          <Box
+            sx={{
+              width: "98%",
+              mx: "auto",
+              px: { xs: 1, md: 3 },
+              pt: 4,
+              pb: 10,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "stretch", md: "center" },
+                mb: 3,
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    letterSpacing: "-1px",
+                    fontSize: { xs: "1.7rem", sm: "2.125rem" },
+                  }}
+                >
+                  Employee Daily Reports
+                </Typography>
+                <Typography sx={{ color: "#64748b", fontWeight: 600, mt: 0.5 }}>
+                  Filter by date or employee, then review reports in one table.
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                onClick={() => setActiveView("dashboard")}
+                sx={{
+                  alignSelf: { xs: "stretch", md: "center" },
+                  borderRadius: "10px",
+                  textTransform: "none",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  borderColor: "#cbd5e1",
+                }}
+              >
+                Back to Dashboard
+              </Button>
+            </Box>
+
+            <Box
+              sx={{
+                bgcolor: "#fff",
+                border: "1px solid #000",
+                borderRadius: "16px",
+                p: { xs: 2, md: 2.5 },
+                mb: 3,
+                boxShadow: "none",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, minmax(0, 1fr))",
+                    lg: "1fr 1fr 1.2fr auto",
+                  },
+                  gap: 2,
+                  alignItems: "center",
+                }}
+              >
+                <TextField
+                  type="date"
+                  label="From Date"
+                  value={reportFromDateFilter}
+                  onChange={(e) => setReportFromDateFilter(e.target.value)}
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  fullWidth
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      backgroundColor: "#fff",
+                      color: "#000",
+                      "& fieldset": { borderColor: "#000" },
+                      "&:hover fieldset": { borderColor: "#000" },
+                      "&.Mui-focused fieldset": { borderColor: "#000" },
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "#000",
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: "#000",
+                    },
+                  }}
+                />
+                <TextField
+                  type="date"
+                  label="To Date"
+                  value={reportToDateFilter}
+                  onChange={(e) => setReportToDateFilter(e.target.value)}
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  fullWidth
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      backgroundColor: "#fff",
+                      color: "#000",
+                      "& fieldset": { borderColor: "#000" },
+                      "&:hover fieldset": { borderColor: "#000" },
+                      "&.Mui-focused fieldset": { borderColor: "#000" },
+                    },
+                    "& .MuiInputBase-input": {
+                      color: "#000",
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: "#000",
+                    },
+                  }}
+                />
+                <TextField
+                  select
+                  label="Employee Name"
+                  value={reportEmployeeFilter}
+                  onChange={(e) => setReportEmployeeFilter(e.target.value)}
+                  size="small"
+                  fullWidth
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "10px",
+                      backgroundColor: "#fff",
+                      color: "#000",
+                      "& fieldset": { borderColor: "#000" },
+                      "&:hover fieldset": { borderColor: "#000" },
+                      "&.Mui-focused fieldset": { borderColor: "#000" },
+                    },
+                    "& .MuiSelect-select": {
+                      color: "#000",
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: "#000",
+                    },
+                  }}
+                >
+                  <MenuItem value="ALL">All Employees</MenuItem>
+                  {reportEmployeeOptions.map((name) => (
+                    <MenuItem key={name} value={name}>
+                      {name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setReportFromDateFilter("");
+                    setReportToDateFilter("");
+                    setReportEmployeeFilter("ALL");
+                  }}
+                  sx={{
+                    minHeight: 40,
+                    borderRadius: "10px",
+                    textTransform: "none",
+                    fontWeight: 700,
+                    color: "#000",
+                    borderColor: "#000",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </Box>
+            </Box>
+
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                mb: 4,
+                mb: 1.5,
+                gap: 2,
                 flexWrap: "wrap",
-                gap: 2
               }}
             >
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 700,
-                  color: "#444",
-                  letterSpacing: "-1px",
-                }}
-              >
-                Employee Daily Reports
+              <Typography sx={{ color: "#000", fontWeight: 700 }}>
+                Showing {filteredReports.length} report
+                {filteredReports.length === 1 ? "" : "s"}
               </Typography>
-              <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                <TextField
-                  select
-                  label="Sort By"
-                  value={reportSortBy}
-                  onChange={(e) => setReportSortBy(e.target.value)}
-                  size="small"
-                  sx={{ minWidth: 150 }}
-                >
-                  <MenuItem value="date">Date (Newest)</MenuItem>
-                  <MenuItem value="name">Name (A-Z)</MenuItem>
-                </TextField>
-                <Button
-                  variant="outlined"
-                  onClick={() => setActiveView("dashboard")}
-                  sx={{ borderRadius: "8px", textTransform: "none", fontWeight: 600 }}
-                >
-                  Back to Dashboard
-                </Button>
-              </Box>
             </Box>
 
-            <Grid container spacing={3}>
-              {(Array.isArray(reports) ? [...reports] : [])
-                .sort((a, b) => {
-                  if (reportSortBy === "date") {
-                    const dateA = a.date ? new Date(a.date) : new Date(0);
-                    const dateB = b.date ? new Date(b.date) : new Date(0);
-                    return dateB - dateA;
-                  } else {
-                    const nameA = a.username || "";
-                    const nameB = b.username || "";
-                    return nameA.localeCompare(nameB);
-                  }
-                })
-                .map((report, idx) => (
-                  <Grid item xs={12} sm={6} md={4} key={idx}>
+            <TableContainer
+              component={Paper}
+              elevation={0}
+              sx={{
+                borderRadius: "16px",
+                border: "1px solid #000",
+                boxShadow: "none",
+                overflowX: "auto",
+                backgroundColor: "#fff",
+              }}
+            >
+              <Table sx={{ minWidth: 860, backgroundColor: "#fff" }}>
+                <TableHead sx={{ backgroundColor: "#fff" }}>
+                  <TableRow sx={{ backgroundColor: "#fff" }}>
+                    {[
+                      "No",
+                      "Employee Name",
+                      "Date",
+                      "Department",
+                      "Report",
+                    ].map((head) => (
+                      <TableCell
+                        key={head}
+                        sx={{
+                          fontWeight: 900,
+                          color: "#000",
+                          border: "1px solid #000",
+                          backgroundColor: "#fff",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {head}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                </TableHead>
+                <TableBody sx={{ backgroundColor: "#fff" }}>
+                  {filteredReports.map((report, idx) => (
+                    <TableRow
+                      key={report?._id || report?.id || idx}
+                      sx={{ backgroundColor: "#fff" }}
+                    >
+                      <TableCell
+                        sx={{
+                          border: "1px solid #000",
+                          color: "#000",
+                          fontWeight: 700,
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        {idx + 1}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          border: "1px solid #000",
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        <Typography sx={{ color: "#000", fontWeight: 800 }}>
+                          {getReportEmployeeName(report)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          border: "1px solid #000",
+                          whiteSpace: "nowrap",
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        <Chip
+                          label={formatReportDate(report?.date)}
+                          size="small"
+                          sx={{
+                            bgcolor: "#fff",
+                            color: "#000",
+                            fontWeight: 800,
+                            borderRadius: "8px",
+                            border: "1px solid #000",
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          border: "1px solid #000",
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        <Chip
+                          label={report?.deptId || report?.department || "N/A"}
+                          size="small"
+                          sx={{
+                            bgcolor: "#fff",
+                            color: "#000",
+                            fontWeight: 700,
+                            borderRadius: "8px",
+                            border: "1px solid #000",
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          border: "1px solid #000",
+                          minWidth: 340,
+                          backgroundColor: "#fff",
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            color: "#000",
+                            fontWeight: 600,
+                            lineHeight: 1.7,
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {getReportDescription(report)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {filteredReports.length === 0 && (
+              <Box
+                sx={{
+                  textAlign: "center",
+                  py: 8,
+                  bgcolor: "#fff",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "16px",
+                  mt: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ color: "#64748b", fontWeight: 800 }}
+                >
+                  No reports available for this selection.
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              width: "98%",
+              mx: "auto",
+              px: { xs: 1, md: 3 },
+              pt: 4,
+              pb: 10,
+            }}
+          >
+            {/* Status Cards Section */}
+            <Grid
+              container
+              spacing={2}
+              sx={{ mb: 6, width: "100%", justifyContent: "space-between" }}
+            >
+              {[
+                {
+                  title: "Active Tasks",
+                  value: "03",
+                  icon: <AssignmentIcon />,
+                },
+                { title: "Processing", value: "01", icon: <NotesIcon /> },
+                { title: "Approved", value: "01", icon: <CheckBoxIcon /> },
+                { title: "Pending", value: "01", icon: <AccessTimeIcon /> },
+              ].map((stat, idx) => (
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  md={3}
+                  key={idx}
+                  sx={{ display: "flex", flexGrow: 1 }}
+                >
+                  <Box
+                    sx={{
+                      width: "100%",
+                      flexGrow: 1,
+                      background:
+                        "linear-gradient(90deg, #0d254a 0%, #1e4db7 100%)",
+                      borderRadius: "8px",
+                      p: 3,
+                      color: "#fff",
+                      minHeight: "150px", // Maintains landscape shape
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      position: "relative",
+                      overflow: "hidden",
+                      // Top Right Circle
+                      "&::before": {
+                        content: '""',
+                        position: "absolute",
+                        top: "-20%",
+                        right: "-10%",
+                        width: "120px",
+                        height: "120px",
+                        background: "rgba(255,255,255,0.06)",
+                        borderRadius: "50%",
+                      },
+                      // Bottom Left Circle
+                      "&::after": {
+                        content: '""',
+                        position: "absolute",
+                        bottom: "-20%",
+                        left: "-10%",
+                        width: "100px",
+                        height: "100px",
+                        background: "rgba(255,255,255,0.06)",
+                        borderRadius: "50%",
+                      },
+                    }}
+                  >
+                    {/* Top Right Label & Icon */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        alignSelf: "flex-end",
+                        mt: 1,
+                        zIndex: 1,
+                      }}
+                    >
+                      {React.cloneElement(stat.icon, {
+                        sx: { fontSize: 24, opacity: 0.95 },
+                      })}
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: "1.1rem",
+                          opacity: 0.95,
+                        }}
+                      >
+                        {stat.title}
+                      </Typography>
+                    </Box>
+                    {/* Bottom Left Number */}
+                    <Typography
+                      variant="h2"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "4.2rem",
+                        mb: -0.5,
+                        ml: 1,
+                        letterSpacing: -2,
+                        zIndex: 1,
+                      }}
+                    >
+                      {stat.value}
+                    </Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+
+            {/* Action Grid Buttons */}
+            <Box
+              sx={{
+                display: "flex",
+                gap: 3,
+                mb: 8,
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                width: "100%",
+              }}
+            >
+              {[
+                {
+                  label: "New Project",
+                  icon: <FolderIcon />,
+                  onClick: () => setOpenProjectDialog(true),
+                },
+                {
+                  label: "Project Hub",
+                  icon: <BarChartIcon />,
+                  onClick: () => navigate("/head/projects"),
+                },
+                {
+                  label: "Analytics Dashboard",
+                  icon: <GridViewIcon />,
+                  onClick: () => navigate("/head/project-overview"),
+                },
+                {
+                  label: "Calendar",
+                  icon: <DashboardCustomizeIcon />,
+                  onClick: handleOpenCustomDialog,
+                },
+                {
+                  label: "Billings",
+                  icon: <InsertDriveFileIcon />,
+                  onClick: () => navigate("/head/billings"),
+                },
+                {
+                  label: "Add to Accounts",
+                  icon: <FolderIcon />,
+                  onClick: () => setOpenAddToAccountsDialog(true),
+                },
+                {
+                  label: "Floor",
+                  icon: <AssessmentIcon />,
+                  onClick: () => setActiveView("production-activity"),
+                },
+                {
+                  label: "Daily Reports",
+                  icon: <HistoryIcon />,
+                  onClick: () => setActiveView("daily-reports"),
+                },
+                {
+                  label: "Head Reports",
+                  icon: <NotesIcon />,
+                  onClick: () => setActiveView("head-reports"),
+                },
+              ].map((action, idx) => (
+                <Button
+                  key={idx}
+                  variant="outlined"
+                  startIcon={action.icon}
+                  onClick={action.onClick}
+                  sx={{
+                    flex: 1,
+                    minWidth: { xs: "100%", sm: "280px" },
+                    color: "#555",
+                    borderColor: "#e0e0e0",
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    px: 4,
+                    py: 2,
+                    fontWeight: 600,
+                    fontSize: "1.1rem",
+                    backgroundColor: "#fff",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
+                    "&:hover": {
+                      backgroundColor: "#f9f9f9",
+                      borderColor: "#ccc",
+                    },
+                  }}
+                >
+                  {action.label}
+                </Button>
+              ))}
+            </Box>
+
+            {/* Task Overview Section */}
+            <Typography
+              variant="h4"
+              sx={{
+                mb: 6,
+                fontWeight: 700,
+                color: "#444",
+                letterSpacing: "-1px",
+              }}
+            >
+              Task Overview
+            </Typography>
+            <Box
+              sx={{
+                maxHeight: "62vh",
+                overflowY: "auto",
+                pr: 1,
+                "&::-webkit-scrollbar": { width: 8 },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "#cbd5e1",
+                  borderRadius: 6,
+                },
+              }}
+            >
+              <Grid container spacing={3}>
+                {tasks.map((task) => (
+                  <Grid item xs={12} md={6} lg={4} key={task._id}>
                     <Box
                       sx={{
                         bgcolor: "#ffffff",
@@ -674,7 +1292,7 @@ const employee_reports = async (token)=>{
                         p: 3,
                         boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
                         border: "1px solid #f1f5f9",
-                        height: "200px",
+                        height: "100%",
                         display: "flex",
                         flexDirection: "column",
                         transition: "transform 0.2s, box-shadow 0.2s",
@@ -701,528 +1319,215 @@ const employee_reports = async (token)=>{
                             letterSpacing: "-0.02em",
                           }}
                         >
-                          {report.username || "Unknown"}
+                          {task.title}
                         </Typography>
                         <Chip
-                          label={report.date ? new Date(report.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
+                          label={task.priority || "Medium"}
                           size="small"
                           sx={{
-                            bgcolor: "#e0f2fe",
-                            color: "#0369a1",
+                            bgcolor: (() => {
+                              const p = (
+                                task.priority || "Medium"
+                              ).toLowerCase();
+                              if (p === "critical" || p === "high")
+                                return "#fee2e2";
+                              if (p === "medium") return "#fef3c7";
+                              return "#f0fdf4";
+                            })(),
+                            color: (() => {
+                              const p = (
+                                task.priority || "Medium"
+                              ).toLowerCase();
+                              if (p === "critical" || p === "high")
+                                return "#991b1b";
+                              if (p === "medium") return "#92400e";
+                              return "#166534";
+                            })(),
                             fontWeight: 700,
-                            fontSize: "0.75rem",
+                            fontSize: "0.7rem",
+                            textTransform: "uppercase",
                             borderRadius: "6px",
                           }}
                         />
                       </Box>
+
+                      <Typography
+                        sx={{
+                          color: "#475569",
+                          fontSize: "0.95rem",
+                          mb: 3,
+                          lineHeight: 1.6,
+                          flexGrow: 1,
+                          display: "-webkit-box",
+                          WebkitLineClamp: 3,
+                          WebkitBoxOverflow: "vertical",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {task.desc ||
+                          task.description ||
+                          "No description provided."}
+                      </Typography>
+
+                      <Divider sx={{ mb: 2.5, opacity: 0.6 }} />
+
                       <Box
                         sx={{
-                          flexGrow: 1,
-                          overflow: "hidden",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 1.5,
                           mb: 3,
                         }}
                       >
-                        {report.desc ? (
-                          report.desc.split('*').map((line, i) => {
-                            const trimmed = line.trim();
-                            if (!trimmed) return null;
-                            return (
-                              <Box key={i} sx={{ display: 'flex', mb: 0.5, alignItems: 'flex-start' }}>
-                                {(i > 0 || report.desc.trim().startsWith('*')) && (
-                                  <Box sx={{ mr: 1, color: '#94a3b8', fontSize: '1.2rem', lineHeight: 1.2 }}>•</Box>
-                                )}
-                                <Typography
-                                  sx={{
-                                    color: "#475569",
-                                    fontSize: "0.95rem",
-                                    lineHeight: 1.6,
-                                  }}
-                                >
-                                  {trimmed}
-                                </Typography>
-                              </Box>
-                            );
-                          })
-                        ) : (
-                          <Typography sx={{ color: "#475569", fontSize: "0.95rem", lineHeight: 1.6 }}>
-                            No description provided.
-                          </Typography>
-                        )}
-                      </Box>
-                      <Divider sx={{ mb: 2, opacity: 0.6 }} />
-                      <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
-                        <Chip
-                          label={report.deptId || "N/A"}
-                          size="small"
+                        <Box
                           sx={{
-                            bgcolor: "#f1f5f9",
-                            color: "#475569",
-                            fontWeight: 600,
-                            fontSize: "0.75rem",
-                            borderRadius: "4px",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
                           }}
-                        />
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <AccessTimeIcon
+                              sx={{ fontSize: 16, color: "#94a3b8" }}
+                            />
+                            <Typography
+                              sx={{
+                                color: "#64748b",
+                                fontSize: "0.85rem",
+                                fontWeight: 500,
+                              }}
+                            >
+                              Deadline
+                            </Typography>
+                          </Box>
+                          <Typography
+                            sx={{
+                              color: "#1e293b",
+                              fontSize: "0.85rem",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {task.deadline
+                              ? new Date(task.deadline).toLocaleDateString(
+                                  "en-GB",
+                                  { day: "2-digit", month: "short" },
+                                )
+                              : "-"}
+                          </Typography>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <PersonIcon
+                              sx={{ fontSize: 16, color: "#94a3b8" }}
+                            />
+                            <Typography
+                              sx={{
+                                color: "#64748b",
+                                fontSize: "0.85rem",
+                                fontWeight: 500,
+                              }}
+                            >
+                              Source
+                            </Typography>
+                          </Box>
+                          <Chip
+                            label={formatHeadAssignmentSource(task)}
+                            size="small"
+                            sx={{
+                              fontWeight: 700,
+                              fontSize: "0.65rem",
+                              height: "22px",
+                              borderRadius: "4px",
+                              ...(() => {
+                                const role = (
+                                  task.admin ||
+                                  task.role ||
+                                  task.assignedByRole ||
+                                  ""
+                                ).toLowerCase();
+                                if (role === "hr") {
+                                  return {
+                                    bgcolor: "#ecfdf5",
+                                    color: "#065f46",
+                                    border: "1px solid #d1fae5",
+                                  };
+                                }
+                                if (
+                                  role === "ceo" ||
+                                  role === "admin" ||
+                                  role === "superadmin"
+                                ) {
+                                  return {
+                                    bgcolor: "#eff6ff",
+                                    color: "#1e40af",
+                                    border: "1px solid #dbeafe",
+                                  };
+                                }
+                                return {
+                                  bgcolor: "#f8fafc",
+                                  color: "#475569",
+                                  border: "1px solid #e2e8f0",
+                                };
+                              })(),
+                            }}
+                          />
+                        </Box>
                       </Box>
+
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        value={task.status || "pending"}
+                        onChange={(e) =>
+                          handleStatusChange(task, e.target.value)
+                        }
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            borderRadius: "10px",
+                            backgroundColor: "#f8fafc",
+                            fontSize: "0.9rem",
+                            fontWeight: 600,
+                            color: "#0f172a !important",
+                            "&:hover fieldset": { borderColor: "#cbd5e1" },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "#3b82f6",
+                            },
+                          },
+                          "& .MuiSelect-select": {
+                            color: "#0f172a !important",
+                          },
+                        }}
+                      >
+                        <MenuItem value="pending">⏳ Pending</MenuItem>
+                        <MenuItem value="in_progress">⚙️ In Progress</MenuItem>
+                        <MenuItem value="completed">✅ Completed</MenuItem>
+                      </TextField>
                     </Box>
                   </Grid>
                 ))}
-              {(!Array.isArray(reports) || reports.length === 0) && (
-                <Grid item xs={12}>
-                  <Box sx={{ textAlign: "center", py: 5 }}>
-                    <Typography variant="h6" color="textSecondary">
-                      No reports available.
-                    </Typography>
-                  </Box>
-                </Grid>
-              )}
-            </Grid>
-          </Box>
-        ) : (
-          <Box
-            sx={{ width: "98%", mx: "auto", px: { xs: 1, md: 3 }, pt: 4, pb: 10 }}
-          >
-            {/* Status Cards Section */}
-            <Grid
-              container
-              spacing={2}
-              sx={{ mb: 6, width: "100%", justifyContent: "space-between" }}
-            >
-            {[
-              { title: "Active Tasks", value: "03", icon: <AssignmentIcon /> },
-              { title: "Processing", value: "01", icon: <NotesIcon /> },
-              { title: "Approved", value: "01", icon: <CheckBoxIcon /> },
-              { title: "Pending", value: "01", icon: <AccessTimeIcon /> },
-            ].map((stat, idx) => (
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={3}
-                key={idx}
-                sx={{ display: "flex", flexGrow: 1 }}
-              >
-                <Box
-                  sx={{
-                    width: "100%",
-                    flexGrow: 1,
-                    background:
-                      "linear-gradient(90deg, #0d254a 0%, #1e4db7 100%)",
-                    borderRadius: "8px",
-                    p: 3,
-                    color: "#fff",
-                    minHeight: "150px", // Maintains landscape shape
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                    position: "relative",
-                    overflow: "hidden",
-                    // Top Right Circle
-                    "&::before": {
-                      content: '""',
-                      position: "absolute",
-                      top: "-20%",
-                      right: "-10%",
-                      width: "120px",
-                      height: "120px",
-                      background: "rgba(255,255,255,0.06)",
-                      borderRadius: "50%",
-                    },
-                    // Bottom Left Circle
-                    "&::after": {
-                      content: '""',
-                      position: "absolute",
-                      bottom: "-20%",
-                      left: "-10%",
-                      width: "100px",
-                      height: "100px",
-                      background: "rgba(255,255,255,0.06)",
-                      borderRadius: "50%",
-                    },
-                  }}
-                >
-                  {/* Top Right Label & Icon */}
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      alignSelf: "flex-end",
-                      mt: 1,
-                      zIndex: 1,
-                    }}
-                  >
-                    {React.cloneElement(stat.icon, {
-                      sx: { fontSize: 24, opacity: 0.95 },
-                    })}
-                    <Typography
-                      sx={{
-                        fontWeight: 600,
-                        fontSize: "1.1rem",
-                        opacity: 0.95,
-                      }}
-                    >
-                      {stat.title}
-                    </Typography>
-                  </Box>
-                  {/* Bottom Left Number */}
-                  <Typography
-                    variant="h2"
-                    sx={{
-                      fontWeight: 700,
-                      fontSize: "4.2rem",
-                      mb: -0.5,
-                      ml: 1,
-                      letterSpacing: -2,
-                      zIndex: 1,
-                    }}
-                  >
-                    {stat.value}
-                  </Typography>
-                </Box>
               </Grid>
-            ))}
-          </Grid>
-
-          {/* Action Grid Buttons */}
-          <Box
-            sx={{
-              display: "flex",
-              gap: 3,
-              mb: 8,
-              flexWrap: "wrap",
-              justifyContent: "space-between",
-              width: "100%",
-            }}
-          >
-            {[
-              {
-                label: "New Project",
-                icon: <FolderIcon />,
-                onClick: () => setOpenProjectDialog(true),
-              },
-              {
-                label: "Project Hub",
-                icon: <BarChartIcon />,
-                onClick: () => navigate("/head/projects"),
-              },
-              {
-                label: "Analytics Dashboard",
-                icon: <GridViewIcon />,
-                onClick: () => navigate("/head/project-overview"),
-              },
-              {
-                label: "Calendar",
-                icon: <DashboardCustomizeIcon />,
-                onClick: handleOpenCustomDialog,
-              },
-              {
-                label: "Billings",
-                icon: <InsertDriveFileIcon />,
-                onClick: () => navigate("/head/billings"),
-              },
-              {
-                label: "Add to Accounts",
-                icon: <FolderIcon />,
-                onClick: () => setOpenAddToAccountsDialog(true),
-              },
-              {
-                label: "Floor",
-                icon: <AssessmentIcon />,
-                onClick: () => setActiveView("production-activity"),
-              },
-              {
-                label: "Daily Reports",
-                icon: <HistoryIcon />,
-                onClick: () => setActiveView("daily-reports"),
-              },
-              {
-                label: "Head Reports",
-                icon: <NotesIcon />,
-                onClick: () => setActiveView("head-reports"),
-              },
-            ].map((action, idx) => (
-              <Button
-                key={idx}
-                variant="outlined"
-                startIcon={action.icon}
-                onClick={action.onClick}
-                sx={{
-                  flex: 1,
-                  minWidth: { xs: "100%", sm: "280px" },
-                  color: "#555",
-                  borderColor: "#e0e0e0",
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  px: 4,
-                  py: 2,
-                  fontWeight: 600,
-                  fontSize: "1.1rem",
-                  backgroundColor: "#fff",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.03)",
-                  "&:hover": {
-                    backgroundColor: "#f9f9f9",
-                    borderColor: "#ccc",
-                  },
-                }}
-              >
-                {action.label}
-              </Button>
-            ))}
+            </Box>
           </Box>
-
-          {/* Task Overview Section */}
-          <Typography
-            variant="h4"
-            sx={{
-              mb: 6,
-              fontWeight: 700,
-              color: "#444",
-              letterSpacing: "-1px",
-            }}
-          >
-            Task Overview
-          </Typography>
-          <Box
-            sx={{
-              maxHeight: "62vh",
-              overflowY: "auto",
-              pr: 1,
-              "&::-webkit-scrollbar": { width: 8 },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: "#cbd5e1",
-                borderRadius: 6,
-              },
-            }}
-          >
-            <Grid container spacing={3}>
-              {tasks.map((task) => (
-                <Grid item xs={12} md={6} lg={4} key={task._id}>
-                  <Box
-                    sx={{
-                      bgcolor: "#ffffff",
-                      borderRadius: "16px",
-                      p: 3,
-                      boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
-                      border: "1px solid #f1f5f9",
-                      height: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      transition: "transform 0.2s, box-shadow 0.2s",
-                      "&:hover": {
-                        transform: "translateY(-4px)",
-                        boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        mb: 2,
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <Typography
-                        sx={{
-                          fontWeight: 800,
-                          color: "#0f172a",
-                          fontSize: "1.25rem",
-                          lineHeight: 1.2,
-                          letterSpacing: "-0.02em",
-                        }}
-                      >
-                        {task.title}
-                      </Typography>
-                      <Chip
-                        label={task.priority || "Medium"}
-                        size="small"
-                        sx={{
-                          bgcolor: (() => {
-                            const p = (task.priority || "Medium").toLowerCase();
-                            if (p === "critical" || p === "high")
-                              return "#fee2e2";
-                            if (p === "medium") return "#fef3c7";
-                            return "#f0fdf4";
-                          })(),
-                          color: (() => {
-                            const p = (task.priority || "Medium").toLowerCase();
-                            if (p === "critical" || p === "high")
-                              return "#991b1b";
-                            if (p === "medium") return "#92400e";
-                            return "#166534";
-                          })(),
-                          fontWeight: 700,
-                          fontSize: "0.7rem",
-                          textTransform: "uppercase",
-                          borderRadius: "6px",
-                        }}
-                      />
-                    </Box>
-
-                    <Typography
-                      sx={{
-                        color: "#475569",
-                        fontSize: "0.95rem",
-                        mb: 3,
-                        lineHeight: 1.6,
-                        flexGrow: 1,
-                        display: "-webkit-box",
-                        WebkitLineClamp: 3,
-                        WebkitBoxOverflow: "vertical",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {task.desc ||
-                        task.description ||
-                        "No description provided."}
-                    </Typography>
-
-                    <Divider sx={{ mb: 2.5, opacity: 0.6 }} />
-
-                    <Box
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 1.5,
-                        mb: 3,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <AccessTimeIcon
-                            sx={{ fontSize: 16, color: "#94a3b8" }}
-                          />
-                          <Typography
-                            sx={{
-                              color: "#64748b",
-                              fontSize: "0.85rem",
-                              fontWeight: 500,
-                            }}
-                          >
-                            Deadline
-                          </Typography>
-                        </Box>
-                        <Typography
-                          sx={{
-                            color: "#1e293b",
-                            fontSize: "0.85rem",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {task.deadline
-                            ? new Date(task.deadline).toLocaleDateString(
-                                "en-GB",
-                                { day: "2-digit", month: "short" },
-                              )
-                            : "-"}
-                        </Typography>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                        >
-                          <PersonIcon sx={{ fontSize: 16, color: "#94a3b8" }} />
-                          <Typography
-                            sx={{
-                              color: "#64748b",
-                              fontSize: "0.85rem",
-                              fontWeight: 500,
-                            }}
-                          >
-                            Source
-                          </Typography>
-                        </Box>
-                        <Chip
-                          label={formatHeadAssignmentSource(task)}
-                          size="small"
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: "0.65rem",
-                            height: "22px",
-                            borderRadius: "4px",
-                            ...(() => {
-                              const role = (
-                                task.admin ||
-                                task.role ||
-                                task.assignedByRole ||
-                                ""
-                              ).toLowerCase();
-                              if (role === "hr") {
-                                return {
-                                  bgcolor: "#ecfdf5",
-                                  color: "#065f46",
-                                  border: "1px solid #d1fae5",
-                                };
-                              }
-                              if (
-                                role === "ceo" ||
-                                role === "admin" ||
-                                role === "superadmin"
-                              ) {
-                                return {
-                                  bgcolor: "#eff6ff",
-                                  color: "#1e40af",
-                                  border: "1px solid #dbeafe",
-                                };
-                              }
-                              return {
-                                bgcolor: "#f8fafc",
-                                color: "#475569",
-                                border: "1px solid #e2e8f0",
-                              };
-                            })(),
-                          }}
-                        />
-                      </Box>
-                    </Box>
-
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      value={task.status || "pending"}
-                      onChange={(e) => handleStatusChange(task, e.target.value)}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: "10px",
-                          backgroundColor: "#f8fafc",
-                          fontSize: "0.9rem",
-                          fontWeight: 600,
-                          color: "#0f172a !important",
-                          "&:hover fieldset": { borderColor: "#cbd5e1" },
-                          "&.Mui-focused fieldset": { borderColor: "#3b82f6" },
-                        },
-                        "& .MuiSelect-select": {
-                          color: "#0f172a !important",
-                        },
-                      }}
-                    >
-                      <MenuItem value="pending">⏳ Pending</MenuItem>
-                      <MenuItem value="in_progress">⚙️ In Progress</MenuItem>
-                      <MenuItem value="completed">✅ Completed</MenuItem>
-                    </TextField>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        </Box>
         )}
 
         {/* --- Dialogs --- */}
@@ -1300,8 +1605,8 @@ const employee_reports = async (token)=>{
                 {loading
                   ? "Processing..."
                   : editingId
-                    ? "Update Task"
-                    : "Add Task"}
+                  ? "Update Task"
+                  : "Add Task"}
               </Button>
             </Stack>
           </DialogContent>
@@ -1363,24 +1668,19 @@ const employee_reports = async (token)=>{
                 )}
               </TextField>
               <TextField
+                select
                 label="Status"
                 name="status"
                 value={accountFormData.status}
+                onChange={handleAccountInputChange}
                 fullWidth
                 variant="outlined"
-                disabled
-                helperText="Status is fixed to pending until Accounts Head completes payment."
-                sx={{
-                  ...accountFieldStyles,
-                  "& .MuiOutlinedInput-input": {
-                    color: "#000000 !important",
-                  },
-                  "& .MuiOutlinedInput-input.Mui-disabled": {
-                    color: "#000000 !important",
-                    WebkitTextFillColor: "#000000 !important",
-                  },
-                }}
-              />
+                helperText="Select the status for this account entry."
+                sx={{ ...accountFieldStyles, minHeight: 70 }}
+              >
+                <MenuItem value="pending">Pending</MenuItem>
+                <MenuItem value="ongoing">Ongoing</MenuItem>
+              </TextField>
               <TextField
                 label="Department"
                 name="department"

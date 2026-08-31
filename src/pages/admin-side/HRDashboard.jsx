@@ -316,8 +316,8 @@ const HRDashboard = () => {
       const res = await axios.get(`${API_URL}/admin/employe_log`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+     
       setLogs(res.data);
-      console.log(res);
     } catch (err) {
       console.error("Error fetching logs:", err);
     }
