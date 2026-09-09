@@ -201,25 +201,46 @@ const ReportManager = ({
       : "General";
   };
 
-  const getMatchingReport = (user) => {
-    const userId = user?._id || user?.id;
+  const getMatchingReports = (user) => {
+    const userIds = [user?._id, user?.id, user?.userId]
+      .filter((value) => value !== undefined && value !== null && `${value}`.trim() !== "")
+      .map((value) => `${value}`);
+    const userNames = [user?.name, user?.username, user?.userName, user?.email]
+      .filter((value) => value !== undefined && value !== null && `${value}`.trim() !== "")
+      .map((value) => `${value}`.trim().toLowerCase());
     const matchingReports = (reports || []).filter((report) => {
       const reportUserId = report?.userID || report?.userId || report?.employeeId || report?.employeeID;
-      const usernameMatches = report?.username && user?.name && `${report.username}`.toLowerCase() === `${user.name}`.toLowerCase();
-      const userMatches = !userId || !reportUserId || `${reportUserId}` === `${userId}` || usernameMatches;
+      const reportUsername = report?.username || report?.userName || report?.author || report?.employeeName;
+      const idMatches = reportUserId && userIds.includes(`${reportUserId}`);
+      const usernameMatches = reportUsername && userNames.includes(`${reportUsername}`.trim().toLowerCase());
+      const userMatches = Boolean(idMatches || usernameMatches);
 
       if (!userMatches) return false;
       if (!reportDate) return true;
       return toLocalISO(report?.date) === reportDate;
     });
 
-    if (!matchingReports.length) return null;
-    return [...matchingReports].sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+    const uniqueReports = new Map();
+    matchingReports.forEach((report) => {
+      const reportKey = report?._id || `${report?.userID || report?.username}-${report?.date}-${report?.desc || report?.content || ""}`;
+      if (!uniqueReports.has(`${reportKey}`)) uniqueReports.set(`${reportKey}`, report);
+    });
+
+    return [...uniqueReports.values()].sort((a, b) => new Date(b.date) - new Date(a.date));
   };
 
-  const rows = (users || [])
+  const uniqueUsers = [];
+  const seenUsers = new Set();
+  (users || []).forEach((user) => {
+    const userKey = user?._id || user?.id || user?.userId || user?.email || user?.username || user?.name;
+    if (!userKey || seenUsers.has(`${userKey}`.toLowerCase())) return;
+    seenUsers.add(`${userKey}`.toLowerCase());
+    uniqueUsers.push(user);
+  });
+
+  const rows = uniqueUsers
     .map((user, index) => {
-      const report = getMatchingReport(user);
+      const matchingReports = getMatchingReports(user);
       const departmentValue = getDepartmentLabel(user);
       const normalizedDepartment = normalizeDeptName(departmentValue);
       const normalizedSelectedDepartment = normalizeDepartmentValue(reportDeptFilter);
@@ -230,15 +251,18 @@ const ReportManager = ({
         reportDeptFilter === departmentValue ||
         reportDeptFilter === normalizedDepartment;
 
+      if (!matchesDepartment) return null;
+
       return {
-        id: index + 1,
+        id: `${index}-${user?._id || user?.id || user?.userId}`,
         user,
-        report,
+        report: matchingReports[0] || null,
         departmentValue,
         normalizedDepartment,
         matchesDepartment,
       };
     })
+    .filter(Boolean)
     .filter((row) => row.matchesDepartment);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -398,7 +422,7 @@ const ReportManager = ({
                 const displayNo = (currentPage - 1) * PAGE_SIZE + index + 1;
 
                 return (
-                  <TableRow key={row.user?._id || row.user?.id || row.id} hover sx={{ backgroundColor: "#ffffff" }}>
+                  <TableRow key={`${row.user?._id || row.user?.id || row.id}-${row.report?._id || row.id}`} hover sx={{ backgroundColor: "#ffffff" }}>
                     <TableCell sx={{ backgroundColor: "#ffffff", borderBottom: "1px solid #e2e8f0" }}>{displayNo}</TableCell>
                     <TableCell sx={{ backgroundColor: "#ffffff", borderBottom: "1px solid #e2e8f0" }}>
                       <Typography sx={{ fontWeight: 700, color: "#0f172a" }}>

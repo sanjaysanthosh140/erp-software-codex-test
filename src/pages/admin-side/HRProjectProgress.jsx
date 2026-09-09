@@ -303,7 +303,7 @@ const EmployeeCard = ({ entry, index }) => {
                         </Box>
                     </Box>
                     <Typography sx={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 500, mb: 1.5 }}>
-                        {tasks.length} Operational Tasks • {totalTodos} Directives
+                        {entry.role ?? "Employee"} • {tasks.length} Operational Tasks • {totalTodos} Directives
                     </Typography>
 
                     <Box sx={{ mb: 3 }}>
@@ -558,35 +558,52 @@ const HRProjectProgress = () => {
 
             const rawData = res.data;
             console.log("Raw Project Overview Data:", rawData);
+            const overviewItems = Array.isArray(rawData) ? rawData : [rawData];
             const grouped = {};
 
-            rawData.forEach((item) => {
+            overviewItems.forEach((item) => {
                 const empId = item.emp_datas?._id ? String(item.emp_datas._id) : null;
+                const headId = item.head_data?._id ? String(item.head_data._id) : null;
                 const empName = item.emp_datas?.name || "Unknown Employee";
+                const headName = item.head_data?.name || "Unknown Head";
 
-                if (!empId) return;
-
-                if (!grouped[empId]) {
-                    let empTasks = [];
-                    if (Array.isArray(item.employeeTasks)) {
-                        item.employeeTasks.forEach((et) => {
-                            if (String(et.employee) === empId || String(et.employee?._id) === empId) {
-                                if (et.tasks && typeof et.tasks === 'object' && !Array.isArray(et.tasks)) {
-                                    empTasks.push({ ...et.tasks, user_subTaks: [] });
-                                } else if (Array.isArray(et.tasks)) {
-                                    empTasks.push(...et.tasks.map((t) => ({ ...t, user_subTaks: [] })));
-                                }
-                            }
-                        });
-                    } else if (Array.isArray(item.tasks)) {
-                        empTasks = item.tasks.map((t) => ({ ...t, user_subTaks: [] }));
+                const ensureGroup = (personId, name, role) => {
+                    if (!personId) return null;
+                    if (!grouped[personId]) {
+                        grouped[personId] = { employee: name, role, tasks: [] };
                     }
+                    return grouped[personId];
+                };
 
-                    grouped[empId] = {
-                        employee: empName,
-                        tasks: empTasks,
-                    };
-                }
+                ensureGroup(empId, empName, "Employee");
+                ensureGroup(headId, headName, "Head");
+
+                const taskSource = Array.isArray(item.employeeTasks)
+                    ? item.employeeTasks
+                    : Array.isArray(item.tasks)
+                        ? item.tasks.map((task) => ({ tasks: task, employee: empId || headId }))
+                        : [];
+
+                taskSource.forEach((et) => {
+                    const taskOwnerId = et.employee
+                        ? String(et.employee._id || et.employee)
+                        : empId || headId;
+                    const taskGroup = ensureGroup(
+                        taskOwnerId,
+                        taskOwnerId === headId ? headName : empName,
+                        taskOwnerId === headId ? "Head" : "Employee",
+                    );
+                    if (!taskGroup) return;
+
+                    const tasks = Array.isArray(et.tasks) ? et.tasks : [et.tasks || et];
+                    tasks.forEach((task) => {
+                        if (!task || typeof task !== "object") return;
+                        const taskId = String(task.task_id || task._id);
+                        if (!taskGroup.tasks.some((existing) => String(existing.task_id || existing._id) === taskId)) {
+                            taskGroup.tasks.push({ ...task, task_id: taskId, user_subTaks: [] });
+                        }
+                    });
+                });
 
                 const subTasks = Array.isArray(item.sub_tasks)
                     ? item.sub_tasks
@@ -596,9 +613,10 @@ const HRProjectProgress = () => {
 
                 subTasks.forEach((st) => {
                     if (!st) return;
+                    const ownerId = st.user_id ? String(st.user_id) : null;
                     const stTaskId = st.task_id?._id ? String(st.task_id._id) : String(st.task_id);
 
-                    const taskToUpdate = grouped[empId].tasks.find(
+                    const taskToUpdate = ownerId && grouped[ownerId]?.tasks.find(
                         (t) => String(t.task_id) === stTaskId || String(t._id) === stTaskId
                     );
 

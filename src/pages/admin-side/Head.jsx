@@ -100,7 +100,7 @@ const Head = () => {
     if (!token) return;
 
     try {
-      await axios.post(
+      let res = await axios.post(
         `${API_URL}/admin/attendance`,
         { action },
         {
@@ -110,6 +110,8 @@ const Head = () => {
           },
         },
       );
+      setHeadDetails(res.data);
+      return res.data;
     } catch (error) {
       console.log("Head attendance sync failed:", error);
     }
@@ -139,6 +141,7 @@ const Head = () => {
     navigate("/admin");
   };
   const [profile, setProfile] = useState(null);
+  const [headDetails, setHeadDetails] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [reports, setReports] = useState([]);
   const [reportFromDateFilter, setReportFromDateFilter] = useState("");
@@ -532,7 +535,7 @@ const Head = () => {
       const response = await axios.post(
         `${API_URL}/admin/create_project`,
         projectData,
-        {
+        {       
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -1724,6 +1727,7 @@ const Head = () => {
           open={openProjectDialog}
           onClose={() => setOpenProjectDialog(false)}
           onSubmit={handleCreateProject}
+          headDetails={headDetails}
         />
 
         {/* <EverythingComponent

@@ -152,7 +152,7 @@ const CustomStepper = ({ activeStep, completed }) => {
   );
 };
 
-const CreateProjectDialog = ({ open, onClose, onSubmit, initialData }) => {
+const CreateProjectDialog = ({ open, onClose, onSubmit, initialData, headDetails }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -324,20 +324,36 @@ const CreateProjectDialog = ({ open, onClose, onSubmit, initialData }) => {
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
   const handleSubmit = async () => {
-    if (selectedTeam.length === 0) {
+    const head = headDetails?.head_obj || headDetails?.head || headDetails?.users || headDetails;
+    const headId = head?._id?.$oid || head?._id || head?.userId || head?.id;
+
+    if (selectedTeam.length === 0 && !headId) {
       setError("Please assign at least one team member");
       return;
     }
     setLoading(true);
     setError(null);
+    const headMember = headId
+      ? {
+        userId: String(headId),
+        name: head.name || head.username || head.email || "Head",
+        role: head.role || "Head",
+      }
+      : null;
+    const selectedMembers = selectedTeam.map((emp) => ({
+      userId: emp.userId,
+      name: emp.name,
+      role: emp.role,
+    }));
     const finalData = {
       ...projectData,
       todos,
-      teamMembers: selectedTeam.map((emp) => ({
-        userId: emp.userId,
-        name: emp.name,
-        role: emp.role,
-      })),
+      teamMembers: [
+        ...(headMember && !selectedMembers.some((member) => member.userId === headMember.userId)
+          ? [headMember]
+          : []),
+        ...selectedMembers,
+      ],
     };
     try {
       await onSubmit(finalData);

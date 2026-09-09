@@ -73,7 +73,7 @@ const isTaskCompleted = (task) => {
 
   const todos = task.user_subTaks || [];
   if (todos.length > 0) {
-    const doneTodos = todos.filter(td => {
+    const doneTodos = todos.filter((td) => {
       const tdStatus = (td.status || "").toLowerCase();
       return tdStatus === "completed" || tdStatus === "done";
     }).length;
@@ -96,10 +96,14 @@ const CARD_SHADOW = "0 4px 20px rgba(0, 0, 0, 0.05)";
 const PremiumCard = ({ children, sx = {}, hoverEffect = true, onClick }) => (
   <Card
     component={motion.div}
-    whileHover={hoverEffect ? {
-      translateY: -4,
-      boxShadow: "0 12px 30px rgba(0, 0, 0, 0.08)",
-    } : {}}
+    whileHover={
+      hoverEffect
+        ? {
+            translateY: -4,
+            boxShadow: "0 12px 30px rgba(0, 0, 0, 0.08)",
+          }
+        : {}
+    }
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     onClick={onClick}
@@ -157,7 +161,14 @@ const TodoItem = ({ todo }) => {
           {todo.title}
         </Typography>
         {todo.createdAt && (
-          <Typography sx={{ color: "#64748b", fontSize: "0.72rem", mt: 0.5, fontWeight: 600 }}>
+          <Typography
+            sx={{
+              color: "#64748b",
+              fontSize: "0.72rem",
+              mt: 0.5,
+              fontWeight: 600,
+            }}
+          >
             Detected: {todo.createdAt}
           </Typography>
         )}
@@ -173,7 +184,7 @@ const TodoItem = ({ todo }) => {
           fontWeight: 900,
           textTransform: "uppercase",
           border: `1px solid ${alpha(statusColor(todo.status), 0.2)}`,
-          borderRadius: "6px"
+          borderRadius: "6px",
         }}
       />
     </Box>
@@ -183,7 +194,9 @@ const TodoItem = ({ todo }) => {
 const TaskCard = ({ task }) => {
   const todos = task.user_subTaks ?? [];
   const doneTodos = todos.filter((t) => t.status === "completed").length;
-  const todoProgress = todos.length ? Math.round((doneTodos / todos.length) * 100) : 0;
+  const todoProgress = todos.length
+    ? Math.round((doneTodos / todos.length) * 100)
+    : 0;
 
   const sc = statusColor(task.status);
 
@@ -197,12 +210,28 @@ const TaskCard = ({ task }) => {
         background: "#fff",
       }}
     >
-      <Box sx={{ p: 2, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+      <Box
+        sx={{
+          p: 2,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
         <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b", mb: 0.5 }}>
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: "0.95rem",
+              color: "#1e293b",
+              mb: 0.5,
+            }}
+          >
             {task.title}
           </Typography>
-          <Typography sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 500 }}>
+          <Typography
+            sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 500 }}
+          >
             Deadline: {task.duedate || "2026-03-25"}
           </Typography>
         </Box>
@@ -237,8 +266,23 @@ const TaskCard = ({ task }) => {
       </Box>
 
       {todos.length > 0 && (
-        <Accordion disableGutters sx={{ boxShadow: "none", background: "transparent", "&:before": { display: "none" } }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 18, color: "#64748b" }} />} sx={{ minHeight: 32, "& .MuiAccordionSummary-content": { my: 0.5 } }}>
+        <Accordion
+          disableGutters
+          sx={{
+            boxShadow: "none",
+            background: "transparent",
+            "&:before": { display: "none" },
+          }}
+        >
+          <AccordionSummary
+            expandIcon={
+              <ExpandMoreIcon sx={{ fontSize: 18, color: "#64748b" }} />
+            }
+            sx={{
+              minHeight: 32,
+              "& .MuiAccordionSummary-content": { my: 0.5 },
+            }}
+          >
             {/* Icon for expanding */}
           </AccordionSummary>
           <AccordionDetails sx={{ pt: 0, pb: 1, backgroundColor: "#fff" }}>
@@ -253,7 +297,14 @@ const TaskCard = ({ task }) => {
 
       {todos.length === 0 && (
         <Box sx={{ px: 2, pb: 2 }}>
-          <Typography sx={{ color: "#94a3b8", fontSize: "0.75rem", fontStyle: "italic", textAlign: "center" }}>
+          <Typography
+            sx={{
+              color: "#94a3b8",
+              fontSize: "0.75rem",
+              fontStyle: "italic",
+              textAlign: "center",
+            }}
+          >
             No active directives for this task.
           </Typography>
         </Box>
@@ -265,10 +316,15 @@ const TaskCard = ({ task }) => {
 const EmployeeCard = ({ entry, index }) => {
   const tasks = entry.tasks ?? [];
   const totalTasksCount = tasks.length;
-  const doneTasksCount = tasks.filter(t => isTaskCompleted(t)).length;
-  const overallProgress = totalTasksCount ? Math.round((doneTasksCount / totalTasksCount) * 100) : 0;
+  const doneTasksCount = tasks.filter((t) => isTaskCompleted(t)).length;
+  const overallProgress = totalTasksCount
+    ? Math.round((doneTasksCount / totalTasksCount) * 100)
+    : 0;
 
-  const totalTodos = tasks.reduce((sum, t) => sum + (t.user_subTaks ?? []).length, 0);
+  const totalTodos = tasks.reduce(
+    (sum, t) => sum + (t.user_subTaks ?? []).length,
+    0,
+  );
 
   const initials = (entry.employee ?? "?")
     .split(" ")
@@ -280,7 +336,9 @@ const EmployeeCard = ({ entry, index }) => {
   return (
     <PremiumCard sx={{ p: 0, mb: 3 }} hoverEffect={false}>
       <Box sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 1 }}>
+        <Box
+          sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 1 }}
+        >
           <Avatar
             sx={{
               width: 44,
@@ -295,30 +353,65 @@ const EmployeeCard = ({ entry, index }) => {
           </Avatar>
 
           <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontWeight: 800, fontSize: "0.95rem", color: "#1e293b" }}>
+            <Typography
+              sx={{ fontWeight: 800, fontSize: "0.95rem", color: "#1e293b" }}
+            >
               {entry.employee}
             </Typography>
-            <Typography sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 500 }}>
-              {tasks.length} Operational Tasks • {totalTodos} Directives
+            <Typography
+              sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 500 }}
+            >
+              {entry.role ?? "Employee"} • {tasks.length} Operational Tasks •{" "}
+              {totalTodos} Directives
             </Typography>
           </Box>
 
           <Box sx={{ textAlign: "right", ml: 1 }}>
-            <Typography sx={{ fontSize: "1.2rem", fontWeight: 800, color: "#10b981", lineHeight: 1 }}>
+            <Typography
+              sx={{
+                fontSize: "1.2rem",
+                fontWeight: 800,
+                color: "#10b981",
+                lineHeight: 1,
+              }}
+            >
               100%
             </Typography>
-            <Typography sx={{ color: "#64748b", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase" }}>
+            <Typography
+              sx={{
+                color: "#64748b",
+                fontSize: "0.65rem",
+                fontWeight: 700,
+                textTransform: "uppercase",
+              }}
+            >
               Work Capacity
             </Typography>
           </Box>
         </Box>
 
         <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5, alignItems: "center" }}>
-            <Typography sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              mb: 0.5,
+              alignItems: "center",
+            }}
+          >
+            <Typography
+              sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}
+            >
               Work Progress
             </Typography>
-            <Typography sx={{ fontSize: "0.9rem", fontWeight: 800, color: "#1e293b", lineHeight: 1 }}>
+            <Typography
+              sx={{
+                fontSize: "0.9rem",
+                fontWeight: 800,
+                color: "#1e293b",
+                lineHeight: 1,
+              }}
+            >
               {overallProgress}%
             </Typography>
           </Box>
@@ -338,19 +431,46 @@ const EmployeeCard = ({ entry, index }) => {
         </Box>
 
         <Box sx={{ mt: 3 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography sx={{ fontWeight: 800, fontSize: "0.85rem", color: "#1e293b", textTransform: "uppercase" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 2,
+            }}
+          >
+            <Typography
+              sx={{
+                fontWeight: 800,
+                fontSize: "0.85rem",
+                color: "#1e293b",
+                textTransform: "uppercase",
+              }}
+            >
               Assigned Tasks
             </Typography>
             <Chip
               label="Medium"
               size="small"
-              sx={{ bgcolor: "#fff7ed", color: "#c2410c", fontWeight: 700, fontSize: "0.65rem", border: "1px solid #ffedd5" }}
+              sx={{
+                bgcolor: "#fff7ed",
+                color: "#c2410c",
+                fontWeight: 700,
+                fontSize: "0.65rem",
+                border: "1px solid #ffedd5",
+              }}
             />
           </Box>
 
           {tasks.length === 0 ? (
-            <Typography sx={{ color: "#94a3b8", fontSize: "0.85rem", textAlign: "center", py: 2 }}>
+            <Typography
+              sx={{
+                color: "#94a3b8",
+                fontSize: "0.85rem",
+                textAlign: "center",
+                py: 2,
+              }}
+            >
               No tasks assigned.
             </Typography>
           ) : (
@@ -362,7 +482,10 @@ const EmployeeCard = ({ entry, index }) => {
                 pr: 1,
                 pb: 1,
                 "&::-webkit-scrollbar": { width: "6px", height: "6px" },
-                "&::-webkit-scrollbar-thumb": { backgroundColor: "#cbd5e1", borderRadius: "10px" },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "#cbd5e1",
+                  borderRadius: "10px",
+                },
               }}
             >
               {tasks.map((task, ti) => (
@@ -387,12 +510,28 @@ const ProjectListCard = ({ project, index, onSelect }) => {
       onClick={() => onSelect(project)}
     >
       <Box sx={{ p: 3 }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            mb: 2,
+          }}
+        >
           <Box>
-            <Typography sx={{ color: "#1e293b", fontWeight: 800, fontSize: "1.1rem", mb: 0.5 }}>
+            <Typography
+              sx={{
+                color: "#1e293b",
+                fontWeight: 800,
+                fontSize: "1.1rem",
+                mb: 0.5,
+              }}
+            >
               {project.title}
             </Typography>
-            <Typography sx={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 600 }}>
+            <Typography
+              sx={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 600 }}
+            >
               IT
             </Typography>
           </Box>
@@ -405,7 +544,7 @@ const ProjectListCard = ({ project, index, onSelect }) => {
               fontWeight: 800,
               fontSize: "0.65rem",
               borderRadius: "6px",
-              textTransform: "capitalize"
+              textTransform: "capitalize",
             }}
           />
         </Box>
@@ -419,40 +558,58 @@ const ProjectListCard = ({ project, index, onSelect }) => {
             fontWeight: 800,
             fontSize: "0.65rem",
             borderRadius: "6px",
-            mb: 2.5
+            mb: 2.5,
           }}
         />
 
         <Box sx={{ mb: 2 }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-            <Typography sx={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}>
+          <Box
+            sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}
+          >
+            <Typography
+              sx={{ color: "#64748b", fontSize: "0.8rem", fontWeight: 500 }}
+            >
               Deadline
             </Typography>
-            <Typography sx={{ color: "#1e293b", fontSize: "0.8rem", fontWeight: 800 }}>
+            <Typography
+              sx={{ color: "#1e293b", fontSize: "0.8rem", fontWeight: 800 }}
+            >
               2 days left
             </Typography>
           </Box>
         </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, pt: 2, borderTop: `1px solid ${BORDER_COLOR}` }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            pt: 2,
+            borderTop: `1px solid ${BORDER_COLOR}`,
+          }}
+        >
           <Box sx={{ display: "flex", mr: 1 }}>
-            {[1, 2, 3].slice(0, (project.teamMembers ?? []).length || 2).map((_, i) => (
-              <Avatar
-                key={i}
-                sx={{
-                  width: 24,
-                  height: 24,
-                  fontSize: "0.6rem",
-                  bgcolor: ["#0369a1", "#f59e0b", "#991b1b"][i % 3],
-                  color: "#fff",
-                  border: "2px solid #fff",
-                  ml: i === 0 ? 0 : -0.8
-                }}
-              >
-                {String.fromCharCode(65 + i)}
-              </Avatar>
-            ))}
+            {[1, 2, 3]
+              .slice(0, (project.teamMembers ?? []).length || 2)
+              .map((_, i) => (
+                <Avatar
+                  key={i}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    fontSize: "0.6rem",
+                    bgcolor: ["#0369a1", "#f59e0b", "#991b1b"][i % 3],
+                    color: "#fff",
+                    border: "2px solid #fff",
+                    ml: i === 0 ? 0 : -0.8,
+                  }}
+                >
+                  {String.fromCharCode(65 + i)}
+                </Avatar>
+              ))}
           </Box>
-          <Typography sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}>
+          <Typography
+            sx={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}
+          >
             {(project.teamMembers ?? []).length || 2} Units
           </Typography>
         </Box>
@@ -514,6 +671,7 @@ const HeadProjectOverview = () => {
   // --- selected project state ---
   const [selectedProject, setSelectedProject] = useState(null);
   const [overviewData, setOverviewData] = useState([]); // [{employee, tasks:[{...todos:[]}]}]
+  const [headData, setHeadData] = useState(null);
   const [overviewLoading, setOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState(null);
 
@@ -527,7 +685,7 @@ const HeadProjectOverview = () => {
     overviewData.forEach((emp) => {
       const tasks = emp.tasks || [];
       totalTasks += tasks.length;
-      doneTasks += tasks.filter(t => isTaskCompleted(t)).length;
+      doneTasks += tasks.filter((t) => isTaskCompleted(t)).length;
     });
 
     return totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
@@ -567,42 +725,79 @@ const HeadProjectOverview = () => {
 
       const rawData = res.data;
       console.log("Raw Backend Data:", rawData);
+      const overviewItems = Array.isArray(rawData) ? rawData : [rawData];
+      const responseHead = overviewItems.find((item) => item?.head_data)?.head_data;
+      setHeadData(responseHead ?? null);
 
-      const employeeMap = new Map(); // empId -> { name, taskMap: Map(taskId -> task) }
+      const employeeMap = new Map(); // personId -> { name, role, taskMap }
 
       // Pass 1: Build Employee and Task Structure
-      rawData.forEach((item) => {
+      overviewItems.forEach((item) => {
         const empId = item.emp_datas?._id ? String(item.emp_datas._id) : null;
         const empName = item.emp_datas?.name;
+        const headId = item.head_data?._id ? String(item.head_data._id) : null;
+        const headName = item.head_data?.name;
 
         if (empId) {
           if (!employeeMap.has(empId)) {
-            employeeMap.set(empId, { name: empName || "Unknown Employee", taskMap: new Map() });
-          } else if (empName && employeeMap.get(empId).name === "Unknown Employee") {
+            employeeMap.set(empId, {
+              name: empName || "Unknown Employee",
+              role: "Employee",
+              taskMap: new Map(),
+            });
+          } else if (
+            empName &&
+            employeeMap.get(empId).name === "Unknown Employee"
+          ) {
             // Update name if we previously set it to "Unknown Employee" but now found a real name
             employeeMap.get(empId).name = empName;
           }
         }
 
+        if (headId && !employeeMap.has(headId)) {
+          employeeMap.set(headId, {
+            name: headName || "Unknown Head",
+            role: "Head",
+            taskMap: new Map(),
+          });
+        }
+
         const taskSource = Array.isArray(item.employeeTasks)
           ? item.employeeTasks
           : Array.isArray(item.tasks)
-            ? item.tasks.map(t => ({ tasks: t, employee: empId }))
-            : [];
+          ? item.tasks.map((t) => ({ tasks: t, employee: empId }))
+          : [];
 
         taskSource.forEach((et) => {
           const taskObj = et.tasks || et;
           if (!taskObj || typeof taskObj !== "object") return;
 
-          const currentEmpId = et.employee ? String(et.employee._id || et.employee) : empId;
-          const currentEmpName = et.employee?.name || (currentEmpId === empId ? empName : null);
+          const assignedId = et.employee
+            ? String(et.employee._id || et.employee)
+            : null;
+          const currentEmpId = assignedId || empId || headId;
+          const isHeadAssignment = Boolean(
+            headId && (assignedId === headId || (!assignedId && !empId)),
+          );
+          const currentEmpName = isHeadAssignment
+            ? headName
+            : empName || et.employee?.name;
+          const currentRole = isHeadAssignment ? "Head" : "Employee";
 
           if (!currentEmpId) return;
 
           if (!employeeMap.has(currentEmpId)) {
-            employeeMap.set(currentEmpId, { name: currentEmpName || "Unknown Employee", taskMap: new Map() });
-          } else if (currentEmpName && employeeMap.get(currentEmpId).name === "Unknown Employee") {
+            employeeMap.set(currentEmpId, {
+              name: currentEmpName || "Unknown Employee",
+              role: currentRole,
+              taskMap: new Map(),
+            });
+          } else if (
+            currentEmpName &&
+            employeeMap.get(currentEmpId).name === "Unknown Employee"
+          ) {
             employeeMap.get(currentEmpId).name = currentEmpName;
+            employeeMap.get(currentEmpId).role = currentRole;
           }
 
           const taskId = String(taskObj.task_id || taskObj._id);
@@ -613,22 +808,26 @@ const HeadProjectOverview = () => {
               ...taskObj,
               task_id: taskId,
               user_subTaks: [],
-              subTaskMap: new Map()
+              subTaskMap: new Map(),
             });
           }
         });
       });
 
       // Pass 2: Link Subtasks Globably using user_id and task_id
-      rawData.forEach((item) => {
+      overviewItems.forEach((item) => {
         const subTasksContainer = Array.isArray(item.sub_tasks)
           ? item.sub_tasks
-          : item.sub_tasks ? [item.sub_tasks] : [];
+          : item.sub_tasks
+          ? [item.sub_tasks]
+          : [];
 
         subTasksContainer.forEach((st) => {
           if (!st) return;
           const stUserId = st.user_id ? String(st.user_id) : null;
-          const stTaskId = st.task_id?._id ? String(st.task_id._id) : String(st.task_id);
+          const stTaskId = st.task_id?._id
+            ? String(st.task_id._id)
+            : String(st.task_id);
 
           if (stUserId && employeeMap.has(stUserId)) {
             const empRecord = employeeMap.get(stUserId);
@@ -650,17 +849,19 @@ const HeadProjectOverview = () => {
       });
 
       // Convert to UI format
-      const formattedData = Array.from(employeeMap.values()).map(emp => ({
-        employee: emp.name,
-        tasks: Array.from(emp.taskMap.values()).map(task => {
-          const { subTaskMap, ...taskData } = task;
-          return {
-            ...taskData,
-            user_subTaks: Array.from(subTaskMap.values())
-          };
-        })
-      }))
-        .filter(emp => emp.tasks.length > 0); // Only show employees with tasks
+      const formattedData = Array.from(employeeMap.values())
+        .map((emp) => ({
+          employee: emp.name,
+          role: emp.role,
+          tasks: Array.from(emp.taskMap.values()).map((task) => {
+            const { subTaskMap, ...taskData } = task;
+            return {
+              ...taskData,
+              user_subTaks: Array.from(subTaskMap.values()),
+            };
+          }),
+        }))
+        .filter((emp) => emp.tasks.length > 0); // Only show employees with tasks
 
       setOverviewData(formattedData);
       console.log("Formatted Overview Data:", formattedData);
@@ -678,6 +879,7 @@ const HeadProjectOverview = () => {
     if (selectedProject) {
       setSelectedProject(null);
       setOverviewData([]);
+      setHeadData(null);
       setOverviewError(null);
     } else {
       navigate("/head");
@@ -702,7 +904,17 @@ const HeadProjectOverview = () => {
       }}
     >
       {/* Background Mesh Blobs */}
-      <Box sx={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 0, pointerEvents: "none" }}>
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          pointerEvents: "none",
+        }}
+      >
         <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 20, repeat: Infinity }}
@@ -712,7 +924,8 @@ const HeadProjectOverview = () => {
             left: "-5%",
             width: "60vw",
             height: "60vw",
-            background: "radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%)",
+            background:
+              "radial-gradient(circle, rgba(245, 158, 11, 0.08) 0%, transparent 70%)",
             filter: "blur(80px)",
           }}
         />
@@ -725,7 +938,8 @@ const HeadProjectOverview = () => {
             right: "-5%",
             width: "55vw",
             height: "55vw",
-            background: "radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%)",
+            background:
+              "radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, transparent 70%)",
             filter: "blur(100px)",
           }}
         />
@@ -772,7 +986,8 @@ const HeadProjectOverview = () => {
                 sx={{
                   fontWeight: 900,
                   fontSize: { xs: "2rem", md: "3.2rem" },
-                  background: "linear-gradient(135deg, #0f172a 0%, #475569 100%)",
+                  background:
+                    "linear-gradient(135deg, #0f172a 0%, #475569 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   letterSpacing: "-0.03em",
@@ -782,7 +997,14 @@ const HeadProjectOverview = () => {
               >
                 {selectedProject ? selectedProject.title : "Project Progress"}
               </Typography>
-              <Typography sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.95rem", letterSpacing: 0.2 }}>
+              <Typography
+                sx={{
+                  color: "#64748b",
+                  fontWeight: 500,
+                  fontSize: "0.95rem",
+                  letterSpacing: 0.2,
+                }}
+              >
                 {selectedProject
                   ? `Strategic employee progression and tactical daily insights`
                   : "Review the current project and team progress"}
@@ -800,9 +1022,24 @@ const HeadProjectOverview = () => {
                 }}
               >
                 {[
-                  { label: "Specialists", value: overviewData.length, color: "#f59e0b" },
-                  { label: "Directives", value: overviewData.reduce((s, e) => s + (e.tasks?.length ?? 0), 0), color: "#38bdf8" },
-                  { label: "Progress", value: `${currentTotalProgress}%`, color: "#4ade80" },
+                  {
+                    label: "Specialists",
+                    value: overviewData.length,
+                    color: "#f59e0b",
+                  },
+                  {
+                    label: "Directives",
+                    value: overviewData.reduce(
+                      (s, e) => s + (e.tasks?.length ?? 0),
+                      0,
+                    ),
+                    color: "#38bdf8",
+                  },
+                  {
+                    label: "Progress",
+                    value: `${currentTotalProgress}%`,
+                    color: "#4ade80",
+                  },
                 ].map((stat, i) => (
                   <Box
                     key={i}
@@ -822,12 +1059,20 @@ const HeadProjectOverview = () => {
                         color: stat.color,
                         fontWeight: 900,
                         fontSize: "1.4rem",
-                        lineHeight: 1.2
+                        lineHeight: 1.2,
                       }}
                     >
                       {stat.value}
                     </Typography>
-                    <Typography sx={{ color: "#64748b", fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                    <Typography
+                      sx={{
+                        color: "#64748b",
+                        fontSize: "0.7rem",
+                        fontWeight: 800,
+                        textTransform: "uppercase",
+                        letterSpacing: 0.5,
+                      }}
+                    >
                       {stat.label}
                     </Typography>
                   </Box>
@@ -858,7 +1103,9 @@ const HeadProjectOverview = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "#0f172a", fontSize: 22, ml: 1 }} />
+                      <SearchIcon
+                        sx={{ color: "#0f172a", fontSize: 22, ml: 1 }}
+                      />
                     </InputAdornment>
                   ),
                 }}
@@ -874,7 +1121,9 @@ const HeadProjectOverview = () => {
                     "& fieldset": {
                       border: `1px solid ${BORDER_COLOR}`,
                     },
-                    "&:hover fieldset": { borderColor: "rgba(15, 23, 42, 0.2)" },
+                    "&:hover fieldset": {
+                      borderColor: "rgba(15, 23, 42, 0.2)",
+                    },
                     "&.Mui-focused fieldset": {
                       borderColor: "#0f172a",
                       borderWidth: "1.5px",
@@ -888,8 +1137,12 @@ const HeadProjectOverview = () => {
               <LoadingSkeleton count={3} />
             ) : filteredProjects.length === 0 ? (
               <Box sx={{ textAlign: "center", mt: 10 }}>
-                <FolderIcon sx={{ fontSize: 60, color: alpha("#0f172a", 0.1), mb: 2 }} />
-                <Typography sx={{ color: "#64748b", fontWeight: 700, fontSize: "1rem" }}>
+                <FolderIcon
+                  sx={{ fontSize: 60, color: alpha("#0f172a", 0.1), mb: 2 }}
+                />
+                <Typography
+                  sx={{ color: "#64748b", fontWeight: 700, fontSize: "1rem" }}
+                >
                   No active intelligence archives detected.
                 </Typography>
               </Box>
@@ -917,18 +1170,20 @@ const HeadProjectOverview = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 40 }}
           >
-            {currentTotalProgress >= 100 && overviewData.length > 0 && !overviewLoading && (
-              <Alert
-                severity="success"
-                sx={{
-                  mb: 3,
-                  borderRadius: "12px",
-                  "& .MuiAlert-message": { width: "100%", fontWeight: 600 }
-                }}
-              >
-                This project is 100% completed! Please remember to remove it.
-              </Alert>
-            )}
+            {currentTotalProgress >= 100 &&
+              overviewData.length > 0 &&
+              !overviewLoading && (
+                <Alert
+                  severity="success"
+                  sx={{
+                    mb: 3,
+                    borderRadius: "12px",
+                    "& .MuiAlert-message": { width: "100%", fontWeight: 600 },
+                  }}
+                >
+                  This project is 100% completed! Please remember to remove it.
+                </Alert>
+              )}
             {/* Project meta bar */}
             <Box
               sx={{
@@ -947,24 +1202,42 @@ const HeadProjectOverview = () => {
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                <Typography sx={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 700 }}>
+                <Typography
+                  sx={{
+                    color: "#64748b",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                  }}
+                >
                   Priority Level:
                 </Typography>
                 <Chip
                   label={selectedProject.priority ?? "Medium"}
                   size="small"
                   sx={{
-                    bgcolor: alpha(priorityColor(selectedProject.priority), 0.1),
+                    bgcolor: alpha(
+                      priorityColor(selectedProject.priority),
+                      0.1,
+                    ),
                     color: priorityColor(selectedProject.priority),
                     fontWeight: 900,
                     borderRadius: "8px",
                     textTransform: "uppercase",
-                    fontSize: "0.7rem"
+                    fontSize: "0.7rem",
                   }}
                 />
               </Box>
-              <Box sx={{ height: "20px", width: "1px", bgcolor: BORDER_COLOR, display: { xs: "none", md: "block" } }} />
-              <Typography sx={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 700 }}>
+              <Box
+                sx={{
+                  height: "20px",
+                  width: "1px",
+                  bgcolor: BORDER_COLOR,
+                  display: { xs: "none", md: "block" },
+                }}
+              />
+              <Typography
+                sx={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 700 }}
+              >
                 Deadline:{" "}
                 <Box
                   component="span"
@@ -973,8 +1246,17 @@ const HeadProjectOverview = () => {
                   {selectedProject.deadline ?? "Pending Clearance"}
                 </Box>
               </Typography>
-              <Box sx={{ height: "20px", width: "1px", bgcolor: BORDER_COLOR, display: { xs: "none", md: "block" } }} />
-              <Typography sx={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 700 }}>
+              <Box
+                sx={{
+                  height: "20px",
+                  width: "1px",
+                  bgcolor: BORDER_COLOR,
+                  display: { xs: "none", md: "block" },
+                }}
+              />
+              <Typography
+                sx={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 700 }}
+              >
                 Active Unit:{" "}
                 <Box
                   component="span"
@@ -1023,7 +1305,6 @@ const HeadProjectOverview = () => {
                       sx={{ bgcolor: "#f1f5f9", borderRadius: 4, mb: 4 }}
                     />
                     <Skeleton
-
                       variant="rounded"
                       height={80}
                       sx={{ bgcolor: "#f1f5f9", borderRadius: "16px" }}
@@ -1055,33 +1336,42 @@ const HeadProjectOverview = () => {
               !overviewError &&
               overviewData.length === 0 && (
                 <Box sx={{ textAlign: "center", mt: 8 }}>
-                  <TaskAltIcon sx={{ fontSize: 60, color: alpha("#0f172a", 0.1), mb: 2 }} />
+                  <TaskAltIcon
+                    sx={{ fontSize: 60, color: alpha("#0f172a", 0.1), mb: 2 }}
+                  />
                   <Typography
-                    sx={{ color: "#0f172a", fontSize: "1.1rem", fontWeight: 800, mb: 1 }}
+                    sx={{
+                      color: "#0f172a",
+                      fontSize: "1.1rem",
+                      fontWeight: 800,
+                      mb: 1,
+                    }}
                   >
                     Zero intelligence stream throughput.
                   </Typography>
-                  <Typography sx={{ color: "#64748b", fontSize: "0.9rem", fontWeight: 600 }}>
-                    Delegate operational tasks to specialists from the master control console.
+                  <Typography
+                    sx={{
+                      color: "#64748b",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Delegate operational tasks to specialists from the master
+                    control console.
                   </Typography>
                 </Box>
               )}
 
             {/* Employee cards */}
-            {!overviewLoading &&
-              !overviewError &&
-              overviewData.length > 0 && (
-                <Grid container spacing={3}>
-                  {overviewData.map((entry, i) => (
-                    <Grid item xs={12} md={6} xl={4} key={entry.employee ?? i}>
-                      <EmployeeCard
-                        entry={entry}
-                        index={i}
-                      />
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
+            {!overviewLoading && !overviewError && overviewData.length > 0 && (
+              <Grid container spacing={3}>
+                {overviewData.map((entry, i) => (
+                  <Grid item xs={12} md={6} xl={4} key={entry.employee ?? i}>
+                    <EmployeeCard entry={entry} index={i} />
+                  </Grid>
+                ))}
+              </Grid>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -69,7 +69,10 @@ const mapDeptName = (name) => {
 
 const CONTENT_TYPES = ["Video", "Image", "Carousel", "Blog", "Ad"];
 
-export default function CustomProjectDetail({ projectId: propProjectId, onBack: propOnBack }) {
+export default function CustomProjectDetail({
+  projectId: propProjectId,
+  onBack: propOnBack,
+}) {
   const navigate = useNavigate();
   const { id: paramId } = useParams();
   const id = propProjectId || paramId;
@@ -174,7 +177,13 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
   }, [token, navigate, fetchProject, fetchAdminProfile]);
 
   const handleAddGlobalTask = async () => {
-    if (!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim() || !project) return;
+    if (
+      !newTaskContent.trim() ||
+      !newTaskDate.trim() ||
+      !newTaskContentType.trim() ||
+      !project
+    )
+      return;
     try {
       const deptsForTask = project.departments.map((d) => ({
         departmentId: d.departmentId,
@@ -361,7 +370,14 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
   };
 
   const handleUpdateGlobalTask = async () => {
-    if (!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim() || !project || !editingTaskId) return;
+    if (
+      !newTaskContent.trim() ||
+      !newTaskDate.trim() ||
+      !newTaskContentType.trim() ||
+      !project ||
+      !editingTaskId
+    )
+      return;
     try {
       const payload = {
         projectId: project._id,
@@ -501,7 +517,7 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
         }}
       >
         <IconButton
-          onClick={() => propOnBack ? propOnBack() : navigate(-1)}
+          onClick={() => (propOnBack ? propOnBack() : navigate(-1))}
           sx={{ color: TEXT_DARK, bgcolor: alpha(TEXT_DARK, 0.05) }}
         >
           <ArrowBackIcon />
@@ -564,7 +580,11 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
             value={newTaskDate}
             onChange={(e) => setNewTaskDate(e.target.value)}
             required
-            error={editingTaskId ? false : !newTaskDate && newTaskContent.trim() !== ""}
+            error={
+              editingTaskId
+                ? false
+                : !newTaskDate && newTaskContent.trim() !== ""
+            }
             sx={{
               width: "160px",
               "& .MuiOutlinedInput-root": {
@@ -581,7 +601,11 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
             value={newTaskContentType}
             onChange={(e) => setNewTaskContentType(e.target.value)}
             required
-            error={editingTaskId ? false : !newTaskContentType && newTaskContent.trim() !== ""}
+            error={
+              editingTaskId
+                ? false
+                : !newTaskContentType && newTaskContent.trim() !== ""
+            }
             sx={{
               width: "160px",
               "& .MuiOutlinedInput-root": {
@@ -602,7 +626,10 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
             placeholder="Type content detail..."
             fullWidth
             required
-            error={!newTaskContent.trim() && (newTaskDate !== "" || newTaskContentType !== "")}
+            error={
+              !newTaskContent.trim() &&
+              (newTaskDate !== "" || newTaskContentType !== "")
+            }
             sx={{
               flex: 1,
               minWidth: "200px",
@@ -620,7 +647,11 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
               <Button
                 variant="contained"
                 onClick={handleUpdateGlobalTask}
-                disabled={!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim()}
+                disabled={
+                  !newTaskContent.trim() ||
+                  !newTaskDate.trim() ||
+                  !newTaskContentType.trim()
+                }
                 sx={{
                   whiteSpace: "nowrap",
                   px: 3,
@@ -652,7 +683,11 @@ export default function CustomProjectDetail({ projectId: propProjectId, onBack: 
             <Button
               variant="contained"
               onClick={handleAddGlobalTask}
-              disabled={!newTaskContent.trim() || !newTaskDate.trim() || !newTaskContentType.trim()}
+              disabled={
+                !newTaskContent.trim() ||
+                !newTaskDate.trim() ||
+                !newTaskContentType.trim()
+              }
               startIcon={<AddIcon />}
               sx={{
                 whiteSpace: "nowrap",
