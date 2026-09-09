@@ -297,6 +297,7 @@ const ReportManager = ({
             alignItems={{ xs: "stretch", sm: "center" }}
             sx={{ width: { xs: "100%", lg: "auto" } }}
           >
+            
             <Button
               variant="contained"
               onClick={handlePrintAndSave}

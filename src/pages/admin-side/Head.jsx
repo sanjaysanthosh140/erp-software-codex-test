@@ -51,6 +51,7 @@ import CreateProjectDialog from "../../components/CreateProjectDialog";
 import TeamChat from "../../components/TeamChat";
 import ProductionActivityLogger from "./ProductionActivityLogger";
 import HeadReportForm from "../../components/dashboard/HeadReportForm";
+import ProjectsPreview from "../../components/dashboard/ProjectsPreview";
 // import EverythingComponent from "../../components/EverythingComponent";
 import io from "socket.io-client";
 import { NotificationBell } from "../../components/GlobalNotifications";
@@ -150,7 +151,7 @@ const Head = () => {
 
   const [openDialog, setOpenDialog] = useState(false);
   const [openProjectDialog, setOpenProjectDialog] = useState(false);
-  const [activeView, setActiveView] = useState("dashboard"); // 'dashboard' or 'production-activity'
+  const [activeView, setActiveView] = useState("dashboard"); // 'dashboard', 'tasks', or 'production-activity'
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -666,7 +667,59 @@ const Head = () => {
         </Box>
 
         {/* Conditional View Rendering */}
-        {activeView === "production-activity" ? (
+        {activeView === "tasks" ? (
+          <Box
+            sx={{
+              width: "98%",
+              mx: "auto",
+              px: { xs: 1, md: 3 },
+              pt: 4,
+              pb: 10,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "stretch", md: "center" },
+                mb: 3,
+                gap: 2,
+              }}
+            >
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 700,
+                    color: "#444",
+                    letterSpacing: "-1px",
+                  }}
+                >
+                  Tasks
+                </Typography>
+                <Typography sx={{ color: "#64748b", mt: 0.5 }}>
+                  View included projects and manage their tasks.
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                onClick={() => setActiveView("dashboard")}
+                sx={{
+                  alignSelf: { xs: "stretch", md: "center" },
+                  borderRadius: "10px",
+                  textTransform: "none",
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  borderColor: "#cbd5e1",
+                }}
+              >
+                Back to Dashboard
+              </Button>
+            </Box>
+            <ProjectsPreview userId={localStorage.getItem("adminToken")} maxProjects={9} />
+          </Box>
+        ) : activeView === "production-activity" ? (
           <ProductionActivityLogger onBack={() => setActiveView("dashboard")} />
         ) : activeView === "head-reports" ? (
           <Box
@@ -1196,6 +1249,11 @@ const Head = () => {
                   label: "Project Hub",
                   icon: <BarChartIcon />,
                   onClick: () => navigate("/head/projects"),
+                },
+                {
+                  label: "Tasks",
+                  icon: <AssignmentIcon />,
+                  onClick: () => setActiveView("tasks"),
                 },
                 {
                   label: "Analytics Dashboard",
