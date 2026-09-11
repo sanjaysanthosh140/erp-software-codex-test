@@ -551,7 +551,7 @@ function Admin() {
             title: "All projects",
             todos: mergedTodos,
           });
-        } else {
+        } else { 
           const [taskRes, todoRes] = await Promise.all([
             axios.get(`${API_URL}/emp_proj-tasks/${selectedProjectId}`, {
               headers: authHeaders,

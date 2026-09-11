@@ -34,6 +34,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import BusinessIcon from "@mui/icons-material/Business";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import PrintIcon from "@mui/icons-material/Print";
@@ -99,7 +100,7 @@ export default function CustomProjectDetail({
   const [adminProfile, setAdminProfile] = useState(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "pending" | "progress" | "completed" | "reject"
+  const [statusFilter, setStatusFilter] = useState("all"); // "all" | "pending" | "progress" | "completed" | "reject" | "notincluded"
 
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -431,6 +432,7 @@ export default function CustomProjectDetail({
     if (status === "progress") return "#3b82f6";
     if (status === "reject") return "#ef4444";
     if (status === "completed") return "#10b981";
+    if (status === "notincluded") return "#8b5cf6";
     if (
       status === "pending" &&
       (taskDeptStatus?.date || taskDeptStatus?.remark)
@@ -443,8 +445,11 @@ export default function CustomProjectDetail({
     if (status === "progress") return <PlayCircleIcon fontSize="small" />;
     if (status === "reject") return <CancelIcon fontSize="small" />;
     if (status === "completed") return <CheckCircleIcon fontSize="small" />;
+    if (status === "notincluded") return <BusinessIcon fontSize="small" />;
     return <AccessTimeIcon fontSize="small" />;
   };
+  const getStatusLabel = (status) =>
+    status === "notincluded" ? "Not Included" : status;
 
   // Check if user can edit/delete tasks (must be from an included department)
   const canEditDelete = React.useMemo(() => {
@@ -812,6 +817,12 @@ export default function CustomProjectDetail({
                   Rejected
                 </Box>
               </MenuItem>
+              <MenuItem value="notincluded">
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <BusinessIcon fontSize="small" sx={{ color: "#8b5cf6" }} />{" "}
+                  Not Included
+                </Box>
+              </MenuItem>
             </Select>
           </FormControl>
 
@@ -1071,7 +1082,7 @@ export default function CustomProjectDetail({
                         >
                           <Chip
                             icon={getStatusIcon(status)}
-                            label={status}
+                            label={getStatusLabel(status)}
                             onClick={(e) =>
                               handleOpenStatusMenu(
                                 e,
@@ -1198,6 +1209,9 @@ export default function CustomProjectDetail({
         </MenuItem>
         <MenuItem onClick={() => handleStatusSelect("reject")}>
           <CancelIcon fontSize="small" sx={{ color: "#ef4444" }} /> Reject
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusSelect("notincluded")}>
+          <BusinessIcon fontSize="small" sx={{ color: "#8b5cf6" }} /> Not Included
         </MenuItem>
       </Menu>
 

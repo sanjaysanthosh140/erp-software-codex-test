@@ -323,6 +323,7 @@ export default function Employeeeverything({ deptId }) {
     if (status === "progress") return "#3b82f6";
     if (status === "reject") return "#ef4444";
     if (status === "completed") return "#10b981";
+    if (status === "notincluded") return "#8b5cf6";
     if (
       status === "pending" &&
       (taskDeptStatus?.date || taskDeptStatus?.remark)
@@ -334,8 +335,11 @@ export default function Employeeeverything({ deptId }) {
     if (status === "progress") return <PlayCircleIcon fontSize="small" />;
     if (status === "reject") return <CancelIcon fontSize="small" />;
     if (status === "completed") return <CheckCircleIcon fontSize="small" />;
+    if (status === "notincluded") return <BusinessIcon fontSize="small" />;
     return <AccessTimeIcon fontSize="small" />;
   };
+  const getStatusLabel = (status) =>
+    status === "notincluded" ? "Not Included" : status;
   const calculateProgress = (project) => {
     if (!project.tasks || project.tasks.length === 0) return 0;
     const totalSlots = project.tasks.length * project.departments.length;
@@ -739,7 +743,7 @@ export default function Employeeeverything({ deptId }) {
                           >
                             <Chip
                               icon={getStatusIcon(status)}
-                              label={status}
+                              label={getStatusLabel(status)}
                               onClick={
                                 isMyDept
                                   ? (e) =>
@@ -1044,6 +1048,9 @@ export default function Employeeeverything({ deptId }) {
         </MenuItem>
         <MenuItem onClick={() => handleStatusSelect("reject")}>
           <CancelIcon fontSize="small" sx={{ color: "#ef4444" }} /> Reject
+        </MenuItem>
+        <MenuItem onClick={() => handleStatusSelect("notincluded")}>
+          <BusinessIcon fontSize="small" sx={{ color: "#8b5cf6" }} /> Not Included
         </MenuItem>
       </Menu>
       {/* Remark Dialog */}
