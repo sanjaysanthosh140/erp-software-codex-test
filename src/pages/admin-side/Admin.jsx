@@ -386,8 +386,11 @@ function Admin() {
       try {
         setLoading(true);
         setError("");
-        const res = await axios.get(`${API_URL}/admin/users`, {
-          headers: authHeaders,
+        const res = await axios.get(`${API_URL}/employeelists`, {
+          headers:{
+            Authorization:localStorage.getItem("adminToken"),
+            "Content-Type":"application/json"
+          }
         });
         console.log(res.data);
         const list = Array.isArray(res.data) ? res.data : [];

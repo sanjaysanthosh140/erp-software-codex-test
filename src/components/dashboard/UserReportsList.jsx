@@ -63,9 +63,11 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
         },
       });
       // Filter reports for the current user
-      const userReports = res.data.filter(
-        (report) => (report.userID === userId || report.userId === userId)
-      ).sort((a, b) => new Date(b.date) - new Date(a.date));
+      const userReports = res.data
+        .filter(
+          (report) => report.userID === userId || report.userId === userId,
+        )
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
 
       setReports(userReports);
     } catch (err) {
@@ -95,9 +97,10 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`${API_URL}/admin/update_report/${editingId}`,
+      await axios.put(
+        `${API_URL}/admin/update_report/${editingId}`,
         { desc: editDesc },
-        { headers: { Authorization: `${token}` } }
+        { headers: { Authorization: `${token}` } },
       );
       showToast("Report updated successfully", "success");
       setEditingId(null);
@@ -127,7 +130,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`${API_URL}/admin/delete_report/${reportToDelete}`, {
-        headers: { Authorization: `${token}` }
+        headers: { Authorization: `${token}` },
       });
       showToast("Report deleted successfully", "success");
       fetchReports();
@@ -220,12 +223,16 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
                   p: { xs: 2, sm: 2.5 },
                   background: GLASS_BG,
                   backdropFilter: "blur(48px) saturate(180%)",
-                  border: `1px solid ${isEditing ? INDIGO_ACCENT : GLASS_BORDER}`,
+                  border: `1px solid ${
+                    isEditing ? INDIGO_ACCENT : GLASS_BORDER
+                  }`,
                   borderRadius: "16px",
                   transition: "transform 0.2s ease, box-shadow 0.2s ease",
                   "&:hover": {
                     transform: isEditing ? "none" : "translateY(-2px)",
-                    boxShadow: isEditing ? "none" : "0 8px 20px -6px rgba(10,15,25,0.1)",
+                    boxShadow: isEditing
+                      ? "none"
+                      : "0 8px 20px -6px rgba(10,15,25,0.1)",
                   },
                 }}
               >
@@ -284,7 +291,9 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
                         </IconButton>
                         <IconButton
                           size="small"
-                          onClick={() => handleDeleteClick(report._id || report.id)}
+                          onClick={() =>
+                            handleDeleteClick(report._id || report.id)
+                          }
                           disabled={actionLoading}
                           sx={{ color: "#ef4444", opacity: 0.8 }}
                         >
@@ -315,7 +324,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
                         p: 1,
                         bgcolor: "rgba(255,255,255,0.4)",
                         borderRadius: "8px",
-                      }
+                      },
                     }}
                   />
                 ) : (
@@ -347,18 +356,25 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
             background: GLASS_BG,
             backdropFilter: "blur(24px)",
             p: 1,
-          }
+          },
         }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}>
+        <DialogTitle
+          sx={{ display: "flex", alignItems: "center", gap: 1.5, pb: 1 }}
+        >
           <WarningAmberIcon sx={{ color: "#f59e0b" }} />
-          <Typography sx={{ fontWeight: 800, fontSize: "1.1rem", color: PRIMARY_SLATE }}>
+          <Typography
+            sx={{ fontWeight: 800, fontSize: "1.1rem", color: PRIMARY_SLATE }}
+          >
             Confirm Deletion
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ pb: 3 }}>
-          <DialogContentText sx={{ color: SECONDARY_SLATE, fontWeight: 500, fontSize: "0.9rem" }}>
-            Are you sure you want to permanently delete this report? This action cannot be undone.
+          <DialogContentText
+            sx={{ color: SECONDARY_SLATE, fontWeight: 500, fontSize: "0.9rem" }}
+          >
+            Are you sure you want to permanently delete this report? This action
+            cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
@@ -369,7 +385,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
               color: SECONDARY_SLATE,
               textTransform: "none",
               borderRadius: "10px",
-              px: 3
+              px: 3,
             }}
           >
             Cancel
@@ -384,7 +400,7 @@ const UserReportsList = ({ userId, refreshTrigger }) => {
               textTransform: "none",
               borderRadius: "10px",
               px: 4,
-              boxShadow: "0 4px 12px rgba(239, 68, 68, 0.2)"
+              boxShadow: "0 4px 12px rgba(239, 68, 68, 0.2)",
             }}
           >
             Delete
